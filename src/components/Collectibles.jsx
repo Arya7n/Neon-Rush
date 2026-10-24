@@ -1,0 +1,61 @@
+import { useLayoutEffect, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useGameStore } from '../game/gameStore.js'
+import { LANE_X, ORB_POOL } from '../game/constants.js'
+import * as THREE from 'three'
+
+const DUMMY = new THREE.Object3D()
+const MAX = 24
+
+function place(mesh, index, x, y, z, scale, spin) {
+  DUMMY.position.set(x, y, z)
+  DUMMY.rotation.set(spin * 0.6, spin, 0)
+  DUMMY.scale.setScalar(scale)
+  DUMMY.updateMatrix()
+  mesh.setMatrixAt(index, DUMMY.matrix)
+}
+
+export function Collectibles({ worldRef }) {
+  const core = useRef()
+  const glow = useRef()
+
+  useLayoutEffect(() => {
+    core.current.frustumCulled = false
+    glow.current.frustumCulled = false
+  }, [])
+
+  useFrame(() => {
+    const visible = useGameStore.getState().phase !== 'MENU'
+    const world = worldRef.current
+    const list = world.collectibles
+    let count = 0
+    if (visible) {
+      for (let i = 0; i < ORB_POOL && count < MAX; i += 1) {
+        const orb = list[i]
+        if (!orb.active) continue
+        const bob = 1 + Math.sin(world.elapsed * 4 + i) * 0.12
+        const spin = world.elapsed * 2.2 + i
+        place(core.current, count, LANE_X[orb.lane], bob, orb.z, 1, spin)
+        place(glow.current, count, LANE_X[orb.lane], bob, orb.z, 1.15 + Math.sin(world.elapsed * 4 + i) * 0.08, spin)
+        count += 1
+      }
+    }
+    core.current.count = count
+    glow.current.count = count
+    core.current.instanceMatrix.needsUpdate = true
+    glow.current.instanceMatrix.needsUpdate = true
+  })
+
+  return (
+    <group>
+      <instancedMesh ref={core} args={[null, null, MAX]}>
+        <octahedronGeometry args={[0.28, 0]} />
+        <meshStandardMaterial color="#eaffff" emissive="#7af6ff" emissiveIntensity={2.2} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={glow} args={[null, null, MAX]}>
+        <sphereGeometry args={[0.42, 10, 8]} />
+        <meshBasicMaterial color="#3df0ff" transparent opacity={0.22} depthWrite={false} toneMapped={false} />
+      </instancedMesh>
+    </group>
+  )
+}
