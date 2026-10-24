@@ -11,6 +11,8 @@ export function Player() {
   const body = useRef()
   const legL = useRef()
   const legR = useRef()
+  const kneeL = useRef()
+  const kneeR = useRef()
   const armL = useRef()
   const armR = useRef()
   const shadow = useRef()
@@ -32,7 +34,6 @@ export function Player() {
         emissiveIntensity: 1.35,
         toneMapped: false,
       }),
-      visor: new THREE.MeshStandardMaterial({ color: '#071018', metalness: 0.9, roughness: 0.12 }),
     }),
     [],
   )
@@ -46,15 +47,19 @@ export function Player() {
     root.current.position.x = player.x
     visual.current.position.y = player.y + bob
     visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.16
-    body.current.rotation.x = player.sliding ? -1.05 : 0
-    body.current.position.y = player.sliding ? 0.28 : 0.56
+    // Negative X pitch leans the chest toward -Z, the direction of travel.
+    body.current.rotation.x = player.sliding ? -1.05 : running ? -0.32 : -0.16
+    body.current.position.y = player.sliding ? 0.32 : 0.68
     const squash = player.land || 0
     body.current.scale.set(1 + squash * 0.08, 1 - squash * 0.16, 1)
-    const swing = running ? Math.sin(cycle) : 0
-    legL.current.rotation.x = swing * 0.75
-    legR.current.rotation.x = swing * -0.75
-    armL.current.rotation.x = swing * -0.55
-    armR.current.rotation.x = swing * 0.55
+    const stride = running ? Math.sin(cycle) : 0
+    // Positive thigh rotation reaches down the road. The knee folds on the trailing leg.
+    legL.current.rotation.x = stride * 0.9
+    legR.current.rotation.x = stride * -0.9
+    kneeL.current.rotation.x = (stride < 0 ? stride : stride * 0.12) * 1.25
+    kneeR.current.rotation.x = (stride > 0 ? -stride : stride * -0.12) * 1.25
+    armL.current.rotation.x = stride * -0.7
+    armR.current.rotation.x = stride * 0.7
     shadow.current.position.y = 0.035
     const lift = 1 - Math.min(0.55, player.y * 0.22)
     shadow.current.scale.set(lift, lift, 1)
@@ -71,43 +76,62 @@ export function Player() {
         <group ref={body}>
           <RoundedBox args={[0.5, 0.58, 0.3]} radius={0.08} smoothness={2} position={[0, 0.28, 0]} material={mats.suit} />
           <RoundedBox args={[0.56, 0.16, 0.32]} radius={0.05} smoothness={2} position={[0, 0.48, 0]} material={mats.dark} />
-          <mesh position={[0, 0.28, 0.16]} material={mats.mag}>
-            <boxGeometry args={[0.08, 0.42, 0.03]} />
+          <mesh position={[0, 0.3, 0.18]} material={mats.mag}>
+            <boxGeometry args={[0.06, 0.4, 0.04]} />
+          </mesh>
+          <mesh position={[-0.12, 0.36, 0.2]} material={mats.dark}>
+            <boxGeometry args={[0.1, 0.18, 0.12]} />
+          </mesh>
+          <mesh position={[0.12, 0.36, 0.2]} material={mats.dark}>
+            <boxGeometry args={[0.1, 0.18, 0.12]} />
+          </mesh>
+          <mesh ref={lamp} position={[-0.12, 0.32, 0.32]} rotation={[-Math.PI / 2, 0, 0]} material={mats.trim}>
+            <coneGeometry args={[0.045, 0.2, 6]} />
+          </mesh>
+          <mesh position={[0.12, 0.32, 0.32]} rotation={[-Math.PI / 2, 0, 0]} material={mats.mag}>
+            <coneGeometry args={[0.045, 0.2, 6]} />
           </mesh>
           <mesh position={[0, 0.66, 0]} material={mats.dark}>
             <sphereGeometry args={[0.2, 18, 14]} />
           </mesh>
-          <mesh ref={lamp} position={[0, 0.68, 0.16]} material={mats.trim}>
-            <boxGeometry args={[0.24, 0.06, 0.05]} />
+          <mesh position={[0, 0.64, -0.16]} material={mats.trim}>
+            <boxGeometry args={[0.26, 0.09, 0.06]} />
           </mesh>
-          <mesh position={[0, 0.66, -0.16]} material={mats.visor}>
-            <boxGeometry args={[0.22, 0.07, 0.04]} />
-          </mesh>
-          <group ref={armL} position={[-0.34, 0.38, 0]}>
+          <group ref={armL} position={[-0.34, 0.4, -0.02]}>
             <mesh position={[0, -0.18, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.06, 0.28, 4, 8]} />
+              <capsuleGeometry args={[0.055, 0.22, 4, 8]} />
             </mesh>
           </group>
-          <group ref={armR} position={[0.34, 0.38, 0]}>
+          <group ref={armR} position={[0.34, 0.4, -0.02]}>
             <mesh position={[0, -0.18, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.06, 0.28, 4, 8]} />
+              <capsuleGeometry args={[0.055, 0.22, 4, 8]} />
             </mesh>
           </group>
-          <group ref={legL} position={[-0.14, -0.08, 0]}>
-            <mesh position={[0, -0.24, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
+          <group ref={legL} position={[-0.13, 0.02, 0]}>
+            <mesh position={[0, -0.16, 0]} material={mats.suit}>
+              <capsuleGeometry args={[0.065, 0.16, 4, 8]} />
             </mesh>
-            <mesh position={[0, -0.46, 0.02]} material={mats.trim}>
-              <boxGeometry args={[0.16, 0.07, 0.28]} />
-            </mesh>
+            <group ref={kneeL} position={[0, -0.3, 0]}>
+              <mesh position={[0, -0.13, 0]} material={mats.dark}>
+                <capsuleGeometry args={[0.05, 0.14, 4, 8]} />
+              </mesh>
+              <mesh position={[0, -0.26, -0.08]} material={mats.trim}>
+                <boxGeometry args={[0.14, 0.06, 0.3]} />
+              </mesh>
+            </group>
           </group>
-          <group ref={legR} position={[0.14, -0.08, 0]}>
-            <mesh position={[0, -0.24, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.07, 0.28, 4, 8]} />
+          <group ref={legR} position={[0.13, 0.02, 0]}>
+            <mesh position={[0, -0.16, 0]} material={mats.suit}>
+              <capsuleGeometry args={[0.065, 0.16, 4, 8]} />
             </mesh>
-            <mesh position={[0, -0.46, 0.02]} material={mats.trim}>
-              <boxGeometry args={[0.16, 0.07, 0.28]} />
-            </mesh>
+            <group ref={kneeR} position={[0, -0.3, 0]}>
+              <mesh position={[0, -0.13, 0]} material={mats.dark}>
+                <capsuleGeometry args={[0.05, 0.14, 4, 8]} />
+              </mesh>
+              <mesh position={[0, -0.26, -0.08]} material={mats.trim}>
+                <boxGeometry args={[0.14, 0.06, 0.3]} />
+              </mesh>
+            </group>
           </group>
         </group>
       </group>
