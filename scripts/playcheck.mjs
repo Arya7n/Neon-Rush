@@ -139,8 +139,28 @@ const paused = await evaluate(client, `(() => ({
   errs: window.__errs || [],
 }))()`)
 const pauseShot = await shot(client, 'pause.png')
+await evaluate(client, `document.querySelector('.btn-primary').click()`)
+let ended = null
+for (let i = 0; i < 24; i += 1) {
+  await sleep(500)
+  ended = await evaluate(client, `(() => ({
+    over: document.body.innerText.includes('Run over'),
+    text: document.body.innerText.replace(/\\s+/g, ' ').slice(0, 400),
+    best: localStorage.getItem('neon-rush-best'),
+    errs: window.__errs || [],
+  }))()`)
+  if (ended.over) break
+}
+const overShot = ended.over ? await shot(client, 'over.png') : null
+await client.send('Page.reload')
+await sleep(1200)
+const afterReload = await evaluate(client, `(() => ({
+  best: localStorage.getItem('neon-rush-best'),
+  text: document.body.innerText.replace(/\\s+/g, ' ').slice(0, 240),
+  errs: window.__errs || [],
+}))()`)
 
-console.log(JSON.stringify({ ready, menuShot, playing, playShot, paused, pauseShot, cdpLogs: client.logs }, null, 2))
+console.log(JSON.stringify({ ready, menuShot, playing, playShot, paused, pauseShot, ended, overShot, afterReload, cdpLogs: client.logs }, null, 2))
 client.close()
 chrome.kill()
-await rm(profile, { recursive: true, force: true })
+try { await rm(profile, { recursive: true, force: true }) } catch { /* chrome lock */ }

@@ -49,12 +49,12 @@ export function Collectibles({ worldRef }) {
   return (
     <group>
       <instancedMesh ref={core} args={[null, null, MAX]}>
-        <octahedronGeometry args={[0.28, 0]} />
-        <meshStandardMaterial color="#eaffff" emissive="#7af6ff" emissiveIntensity={2.2} toneMapped={false} />
+        <sphereGeometry args={[0.26, 16, 12]} />
+        <meshStandardMaterial color="#f3ffff" emissive="#8af7ff" emissiveIntensity={2.4} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={glow} args={[null, null, MAX]}>
-        <sphereGeometry args={[0.42, 10, 8]} />
-        <meshBasicMaterial color="#3df0ff" transparent opacity={0.22} depthWrite={false} toneMapped={false} />
+        <sphereGeometry args={[0.46, 12, 10]} />
+        <meshBasicMaterial color="#3df0ff" transparent opacity={0.28} depthWrite={false} toneMapped={false} />
       </instancedMesh>
     </group>
   )

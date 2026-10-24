@@ -5,7 +5,7 @@ import { SEGMENT_COUNT, SEGMENT_LENGTH, TRACK_LEAD, TRACK_LENGTH } from '../game
 import { loopZ, mulberry32 } from '../game/math.js'
 
 const DUMMY = new THREE.Object3D()
-const TINTS = ['#121826', '#16141f', '#101820', '#1a1020', '#0e141c']
+const TINTS = ['#243044', '#2a2238', '#1c3040', '#332033', '#24343c']
 const SIGNS = ['NEON', 'RUSH', 'GRID', 'NOVA', 'KILO', 'VOID', 'ARC', '2077']
 
 function buildBuildings() {
@@ -25,9 +25,10 @@ function buildBuildings() {
           depth,
           height,
           tint: TINTS[Math.floor(rng() * TINTS.length)],
-          sign: rng() > 0.4,
+          sign: rng() > 0.35,
           signText: SIGNS[Math.floor(rng() * SIGNS.length)],
           signColor: rng() > 0.5 ? '#3df0ff' : '#ff2bd6',
+          signY: height * 0.62,
         })
       }
     }
@@ -65,16 +66,16 @@ function makeWindows() {
   canvas.width = 64
   canvas.height = 128
   const ctx = canvas.getContext('2d')
-  ctx.fillStyle = '#070910'
+  ctx.fillStyle = '#10151f'
   ctx.fillRect(0, 0, 64, 128)
-  for (let y = 6; y < 128; y += 14) {
-    for (let x = 5; x < 64; x += 12) {
+  for (let y = 4; y < 128; y += 12) {
+    for (let x = 4; x < 64; x += 10) {
       const roll = Math.random()
-      if (roll < 0.35) ctx.fillStyle = '#123043'
-      else if (roll < 0.5) ctx.fillStyle = '#3a2048'
-      else if (roll < 0.62) ctx.fillStyle = '#c8f6ff'
-      else continue
-      ctx.fillRect(x, y, 7, 8)
+      if (roll < 0.45) ctx.fillStyle = '#39d7ff'
+      else if (roll < 0.62) ctx.fillStyle = '#ff4ad8'
+      else if (roll < 0.82) ctx.fillStyle = '#245066'
+      else ctx.fillStyle = '#1a2030'
+      ctx.fillRect(x, y, 6, 7)
     }
   }
   const texture = new THREE.CanvasTexture(canvas)
@@ -122,7 +123,23 @@ export function City({ worldRef }) {
   const buildings = useMemo(buildBuildings, [])
   const skyline = useMemo(buildSkyline, [])
   const lamps = useMemo(buildLamps, [])
-  const signs = useMemo(() => buildings.filter((building) => building.sign), [buildings])
+  const signs = useMemo(() => {
+    const boards = []
+    for (let segment = 0; segment < SEGMENT_COUNT; segment += 1) {
+      for (const side of [-1, 1]) {
+        boards.push({
+          anchor: segment * SEGMENT_LENGTH + 15,
+          x: side * 6.2,
+          depth: 0,
+          roadside: true,
+          signText: SIGNS[(segment + (side > 0 ? 3 : 0)) % SIGNS.length],
+          signColor: side > 0 ? '#ff2bd6' : '#3df0ff',
+          signY: 2.55,
+        })
+      }
+    }
+    return [...buildings.filter((building) => building.sign), ...boards]
+  }, [buildings])
   const windows = useMemo(() => makeWindows(), [])
   const sky = useMemo(() => makeSky(), [])
   const signTextures = useMemo(() => signs.map((sign) => makeSign(sign.signText, sign.signColor)), [signs])
@@ -153,7 +170,7 @@ export function City({ worldRef }) {
 
       const facing = -Math.sign(building.x)
       DUMMY.position.set(building.x + facing * (building.depth / 2 + 0.04), building.height * 0.55, z)
-      DUMMY.rotation.set(0, building.x > 0 ? Math.PI / 2 : -Math.PI / 2, 0)
+      DUMMY.rotation.set(0, building.x > 0 ? -Math.PI / 2 : Math.PI / 2, 0)
       DUMMY.scale.set(building.width * 0.78, building.height * 0.7, 1)
       DUMMY.updateMatrix()
       glass.current.setMatrixAt(index, DUMMY.matrix)
@@ -191,10 +208,11 @@ export function City({ worldRef }) {
       if (!mesh) return
       const z = loopZ(sign.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
       const facing = -Math.sign(sign.x)
-      mesh.position.set(sign.x + facing * (sign.depth / 2 + 0.2), sign.height + 0.7, z)
-      mesh.rotation.y = sign.x > 0 ? Math.PI / 2 : -Math.PI / 2
+      const x = sign.roadside ? sign.x : sign.x + facing * (sign.depth / 2 + 0.12)
+      mesh.position.set(x, sign.signY, z)
+      mesh.rotation.y = sign.x > 0 ? -Math.PI / 2 : Math.PI / 2
       const blink = Math.sin(elapsed * 6 + index * 1.7) > 0.94 ? 0.25 : 1
-      mesh.material.emissiveIntensity = blink
+      mesh.material.opacity = blink
     })
   })
 
@@ -218,10 +236,11 @@ export function City({ worldRef }) {
           color="#05070c"
           emissive="#ffffff"
           emissiveMap={windows}
-          emissiveIntensity={1.25}
+          emissiveIntensity={2.1}
           map={windows}
           roughness={0.4}
           metalness={0.1}
+          side={THREE.DoubleSide}
         />
       </instancedMesh>
       <instancedMesh ref={poles} args={[null, null, lamps.length]}>
@@ -234,13 +253,13 @@ export function City({ worldRef }) {
       </instancedMesh>
       {signs.map((sign, index) => (
         <mesh
-          key={`${sign.anchor}-${sign.x}`}
+          key={`${sign.signText}-${sign.anchor}-${sign.x}-${index}`}
           ref={(node) => {
             signRefs.current[index] = node
           }}
         >
-          <planeGeometry args={[2.4, 0.9]} />
-          <meshBasicMaterial map={signTextures[index]} transparent toneMapped={false} />
+          <planeGeometry args={[2.8, 1.05]} />
+          <meshBasicMaterial map={signTextures[index]} transparent toneMapped={false} side={THREE.DoubleSide} />
         </mesh>
       ))}
     </group>
