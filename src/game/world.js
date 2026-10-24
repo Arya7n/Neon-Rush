@@ -5,6 +5,7 @@ import {
   INITIAL_SPAWN,
   JUMP_BUFFER,
   JUMP_V,
+  LAUNCH_V,
   LANE_LERP,
   LANE_X,
   OBSTACLE_POOL,
@@ -21,7 +22,7 @@ import { clamp } from './math.js'
 import { planRow } from './spawning.js'
 
 function obstacleSlot() {
-  return { active: false, lane: 1, type: 'low', spawnAt: 0, z: 40, resolved: false }
+  return { active: false, lane: 1, type: 'low', spawnAt: 0, z: 40, resolved: false, length: 0, warned: false }
 }
 
 function orbSlot() {
@@ -87,9 +88,11 @@ function spawnRow(world) {
     slot.active = true
     slot.type = item.type
     slot.lane = item.lane
-    slot.spawnAt = rowAt
+    slot.spawnAt = item.spawnAt ?? rowAt
+    slot.length = item.length || 0
+    slot.warned = false
     slot.resolved = false
-    slot.z = world.distance - rowAt
+    slot.z = world.distance - slot.spawnAt
   }
   for (const orb of plan.orbs) {
     const slot = world.collectibles.find((entry) => !entry.active)
@@ -249,9 +252,36 @@ function step(world, dt, input) {
   }
 
   for (const obstacle of world.obstacles) {
+    if (!obstacle.warned && obstacle.active && obstacle.z > -46 && obstacle.z < -34) {
+      if (obstacle.type === 'train') {
+        for (const other of world.obstacles) {
+          if (other.type === 'train' && other.spawnAt === obstacle.spawnAt) other.warned = true
+        }
+        flash(world, 'TRAIN')
+      } else if (obstacle.type === 'ramp' && obstacle.lane === 1) {
+        obstacle.warned = true
+        flash(world, 'RAMP')
+      }
+    }
     if (!obstacle.active || !overlapsPlayer(player, obstacle)) continue
     obstacle.active = false
     obstacle.resolved = true
+    if (obstacle.type === 'ramp') {
+      const row = obstacle.spawnAt
+      for (const other of world.obstacles) {
+        if (other.active && other.type === 'ramp' && other.spawnAt === row) {
+          other.active = false
+          other.resolved = true
+        }
+      }
+      player.vy = LAUNCH_V
+      player.y = Math.max(player.y, 0.2)
+      player.sliding = false
+      player.slideTime = 0
+      world.shake = Math.max(world.shake, 0.22)
+      flash(world, 'LAUNCH')
+      continue
+    }
     if (world.smash > 0) {
       const row = obstacle.spawnAt
       for (const other of world.obstacles) {

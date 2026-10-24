@@ -4,6 +4,8 @@ import {
   HIT_Z,
   LANE_X,
   LOW_CLEAR_Y,
+  RAMP_CLEAR_Y,
+  TRAIN_LENGTH,
   ORB_HIT_X,
   ORB_HIT_Z,
   SLIDE_HEIGHT,
@@ -28,11 +30,15 @@ function overlapsXZ(player, lane, hitX, hitZ, z) {
  * Blocks occupy the whole body and force a lane change.
  */
 export function overlapsPlayer(player, obstacle) {
-  if (!overlapsXZ(player, obstacle.lane, HIT_X, HIT_Z, obstacle.z)) return false
+  const halfZ = obstacle.type === 'train' ? (obstacle.length || TRAIN_LENGTH) / 2 : HIT_Z
+  if (Math.abs(player.x - laneCenter(obstacle.lane)) > HIT_X) return false
+  if (Math.abs(obstacle.z) > halfZ) return false
+  if ((obstacle.type === 'block' || obstacle.type === 'train') && player.y > RAMP_CLEAR_Y) return false
+  if (obstacle.type === 'ramp') return player.y < 0.45
   const height = player.sliding ? SLIDE_HEIGHT : STAND_HEIGHT
   const head = player.y + height
   if (obstacle.type === 'low') return player.y < LOW_CLEAR_Y
-  if (obstacle.type === 'high') return head > HIGH_BAR_Y
+  if (obstacle.type === 'high') return player.y <= RAMP_CLEAR_Y && head > HIGH_BAR_Y
   return true
 }
 

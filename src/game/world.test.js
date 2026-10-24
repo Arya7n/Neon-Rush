@@ -191,6 +191,54 @@ test('magnet, score boost, and smash change a run', () => {
   assert.equal(ram.obstacles[1].active, false)
 })
 
+test('trains leave one open lane and a ramp carries you over the wall', () => {
+  const rng = mulberry32(11)
+  let open = [0, 1, 2]
+  let trains = 0
+  let ramps = 0
+  for (let i = 0; i < 400; i += 1) {
+    const plan = planRow(240 + i * 40, open, rng)
+    if (plan.obstacles.some((item) => item.type === 'train')) trains += 1
+    if (plan.obstacles.some((item) => item.type === 'ramp')) ramps += 1
+    assert.ok(plan.open.some((lane) => open.includes(lane)))
+    open = plan.open
+  }
+  assert.ok(trains > 0)
+  assert.ok(ramps > 0)
+
+  const hit = createWorld({ rng: mulberry32(12) })
+  isolate(hit)
+  hit.obstacles[0].active = true
+  hit.obstacles[0].type = 'train'
+  hit.obstacles[0].lane = 1
+  hit.obstacles[0].length = 12
+  hit.obstacles[0].spawnAt = hit.distance
+  hit.obstacles[0].z = 0
+  hit.player.x = 0
+  assert.equal(updateWorld(hit, 0.001, { laneDelta: 0, jump: false, slide: false }).crashed, true)
+
+  const launched = createWorld({ rng: mulberry32(13) })
+  isolate(launched)
+  launched.obstacles[0].active = true
+  launched.obstacles[0].type = 'ramp'
+  launched.obstacles[0].lane = 1
+  launched.obstacles[0].spawnAt = launched.distance
+  launched.obstacles[0].z = 0
+  launched.obstacles[1].active = true
+  launched.obstacles[1].type = 'block'
+  launched.obstacles[1].lane = 1
+  launched.obstacles[1].spawnAt = launched.distance + 13
+  launched.obstacles[1].z = -13
+  launched.player.x = 0
+  let crashed = false
+  for (let frame = 0; frame < 90; frame += 1) {
+    const result = updateWorld(launched, 1 / 60, { laneDelta: 0, jump: false, slide: false })
+    if (result.crashed) crashed = true
+  }
+  assert.equal(crashed, false)
+  assert.equal(launched.player.alive, true)
+})
+
 test('speed is capped and an autopilot survives a minute of traffic', () => {
   const world = createWorld({ rng: mulberry32(42) })
   world.distance = 5000
@@ -230,14 +278,22 @@ test('restart replaces the world and returns to a clean run', () => {
   assert.equal(worldRef.current.orbsCollected, 0)
 })
 
+function threatZ(item) {
+  if (item.type === 'train') return item.z + (item.length || 12) / 2
+  return item.z
+}
+
 function autopilot(world) {
-  const near = world.obstacles.filter((item) => item.active && item.z < -0.4 && item.z > -36)
+  const near = world.obstacles.filter((item) => {
+    const z = threatZ(item)
+    return item.active && z < -0.4 && z > -42
+  })
   if (!near.length) return { laneDelta: 0, jump: false, slide: false }
-  const closestZ = Math.max(...near.map((item) => item.z))
-  const row = near.filter((item) => Math.abs(item.z - closestZ) < 3)
+  const closestZ = Math.max(...near.map((item) => threatZ(item)))
+  const row = near.filter((item) => Math.abs(threatZ(item) - closestZ) < 4)
   const byLane = [[], [], []]
   row.forEach((item) => byLane[item.lane].push(item.type))
-  const safe = (lane) => !byLane[lane].includes('block')
+  const safe = (lane) => !byLane[lane].some((type) => type === 'block' || type === 'train')
   const lane = world.player.lane
   if (!safe(lane)) {
     const options = [0, 1, 2]

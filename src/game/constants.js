@@ -23,6 +23,9 @@ export const ORB_HIT_X = 1
 export const ORB_HIT_Z = 0.95
 export const LOW_CLEAR_Y = 0.9
 export const HIGH_BAR_Y = 1.25
+export const RAMP_CLEAR_Y = 1.75
+export const LAUNCH_V = 16
+export const TRAIN_LENGTH = 12
 export const STAND_HEIGHT = 1.68
 export const SLIDE_HEIGHT = 0.66
 

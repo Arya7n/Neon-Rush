@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../game/gameStore.js'
-import { LANE_X, OBSTACLE_POOL } from '../game/constants.js'
+import { LANE_X, OBSTACLE_POOL, TRAIN_LENGTH } from '../game/constants.js'
 import { getTheme } from '../game/themes.js'
 
 const DUMMY = new THREE.Object3D()
@@ -37,6 +37,10 @@ export function Obstacles({ worldRef }) {
   const legs = useRef()
   const wheels = useRef()
   const windows = useRef()
+  const train = useRef()
+  const trainNose = useRef()
+  const trainGlass = useRef()
+  const ramp = useRef()
   const stripes = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 64
@@ -60,18 +64,20 @@ export function Obstacles({ worldRef }) {
   }, [])
 
   useLayoutEffect(() => {
-    ;[low, bar, postL, postR, block, edge, warnLow, warnHigh, warnBlock, legs, wheels, windows].forEach((ref) => {
+    ;[low, bar, postL, postR, block, edge, warnLow, warnHigh, warnBlock, legs, wheels, windows, train, trainNose, trainGlass, ramp].forEach((ref) => {
       if (ref.current) ref.current.frustumCulled = false
     })
   }, [])
 
   useFrame(() => {
-    if (!low.current || !warnBlock.current || !legs.current || !wheels.current || !windows.current) return
+    if (!low.current || !warnBlock.current || !legs.current || !wheels.current || !windows.current || !train.current || !ramp.current) return
     const visible = useGameStore.getState().phase !== 'MENU'
     const list = worldRef.current.obstacles
     let lowCount = 0
     let highCount = 0
     let blockCount = 0
+    let trainCount = 0
+    let rampCount = 0
     if (visible) {
       for (let i = 0; i < OBSTACLE_POOL; i += 1) {
         const item = list[i]
@@ -101,6 +107,20 @@ export function Obstacles({ worldRef }) {
           }
           place(warnBlock.current, blockCount, x, 0.03, item.z - 4.5, 1.2, 0.02, 1.7)
           blockCount += 1
+        } else if (item.type === 'train' && trainCount < 8) {
+          const length = item.length || TRAIN_LENGTH
+          place(train.current, trainCount, x, 1.15, item.z, 1.85, 2.15, length)
+          place(trainNose.current, trainCount, x, 1.15, item.z - length / 2 + 0.55, 1.9, 1.5, 1.1)
+          for (let n = 0; n < 4; n += 1) {
+            const along = -length / 2 + 2.2 + n * ((length - 3.2) / 3)
+            place(trainGlass.current, trainCount * 4 + n, x, 1.45, item.z + along, 1.35, 0.55, 1.15)
+          }
+          place(warnBlock.current, blockCount + trainCount, x, 0.03, item.z - length / 2 - 3, 1.3, 0.02, 2.4)
+          trainCount += 1
+        } else if (item.type === 'ramp' && rampCount < 12) {
+          place(ramp.current, rampCount, x, 0.42, item.z, 2.15, 0.55, 2.6, 0.42)
+          place(warnHigh.current, highCount + rampCount, x, 0.03, item.z - 4.2, 1.5, 0.02, 1.8)
+          rampCount += 1
         }
       }
     }
@@ -111,11 +131,15 @@ export function Obstacles({ worldRef }) {
     commit(block.current, blockCount)
     commit(edge.current, blockCount)
     commit(warnLow.current, lowCount)
-    commit(warnHigh.current, highCount)
-    commit(warnBlock.current, blockCount)
+    commit(warnHigh.current, highCount + rampCount)
+    commit(warnBlock.current, blockCount + trainCount)
     commit(legs.current, lowCount * 2)
     commit(wheels.current, blockCount * 4)
     commit(windows.current, blockCount)
+    commit(train.current, trainCount)
+    commit(trainNose.current, trainCount)
+    commit(trainGlass.current, trainCount * 4)
+    commit(ramp.current, rampCount)
   })
 
   return (
@@ -160,11 +184,27 @@ export function Obstacles({ worldRef }) {
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color={theme.secondary} transparent opacity={0.45} depthWrite={false} toneMapped={false} />
       </instancedMesh>
-      <instancedMesh ref={warnHigh} args={[null, null, MAX]}>
+      <instancedMesh ref={train} args={[null, null, 8]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#dfe7ef" roughness={0.42} metalness={0.28} />
+      </instancedMesh>
+      <instancedMesh ref={trainNose} args={[null, null, 8]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color={theme.danger} roughness={0.4} metalness={0.12} />
+      </instancedMesh>
+      <instancedMesh ref={trainGlass} args={[null, null, 32]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#d7f1ff" emissive="#9fdfff" emissiveIntensity={0.3} roughness={0.12} />
+      </instancedMesh>
+      <instancedMesh ref={ramp} args={[null, null, 12]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#ffb703" emissive="#ffb703" emissiveIntensity={0.2} roughness={0.45} />
+      </instancedMesh>
+      <instancedMesh ref={warnHigh} args={[null, null, 32]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color={theme.primary} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>
-      <instancedMesh ref={warnBlock} args={[null, null, MAX]}>
+      <instancedMesh ref={warnBlock} args={[null, null, 32]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color={theme.danger} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>
