@@ -49,7 +49,7 @@ export function Player() {
     visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.16
     // Negative X pitch leans the chest toward -Z, the direction of travel.
     body.current.rotation.x = player.sliding ? -1.05 : running ? -0.32 : -0.16
-    body.current.position.y = player.sliding ? 0.32 : 0.68
+    body.current.position.y = player.sliding ? 0.28 : 0.56
     const squash = player.land || 0
     body.current.scale.set(1 + squash * 0.08, 1 - squash * 0.16, 1)
     const stride = running ? Math.sin(cycle) : 0
@@ -68,6 +68,10 @@ export function Player() {
 
   return (
     <group ref={root}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -3.2]}>
+        <planeGeometry args={[1.7, 7]} />
+        <meshBasicMaterial color="#3df0ff" transparent opacity={0.12} depthWrite={false} />
+      </mesh>
       <mesh ref={shadow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
         <circleGeometry args={[0.46, 20]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.4} depthWrite={false} />

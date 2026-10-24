@@ -8,6 +8,7 @@ const DUMMY = new THREE.Object3D()
 const MAX = 20
 
 function place(mesh, index, x, y, z, sx, sy, sz) {
+  if (!mesh) return
   DUMMY.position.set(x, y, z)
   DUMMY.rotation.set(0, 0, 0)
   DUMMY.scale.set(sx, sy, sz)
@@ -16,6 +17,7 @@ function place(mesh, index, x, y, z, sx, sy, sz) {
 }
 
 function commit(mesh, count) {
+  if (!mesh) return
   mesh.count = count
   mesh.instanceMatrix.needsUpdate = true
 }
@@ -27,6 +29,9 @@ export function Obstacles({ worldRef }) {
   const postR = useRef()
   const block = useRef()
   const edge = useRef()
+  const warnLow = useRef()
+  const warnHigh = useRef()
+  const warnBlock = useRef()
   const stripes = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 64
@@ -50,12 +55,13 @@ export function Obstacles({ worldRef }) {
   }, [])
 
   useLayoutEffect(() => {
-    ;[low, bar, postL, postR, block, edge].forEach((ref) => {
+    ;[low, bar, postL, postR, block, edge, warnLow, warnHigh, warnBlock].forEach((ref) => {
       if (ref.current) ref.current.frustumCulled = false
     })
   }, [])
 
   useFrame(() => {
+    if (!low.current || !warnBlock.current) return
     const visible = useGameStore.getState().phase !== 'MENU'
     const list = worldRef.current.obstacles
     let lowCount = 0
@@ -68,15 +74,18 @@ export function Obstacles({ worldRef }) {
         const x = LANE_X[item.lane]
         if (item.type === 'low' && lowCount < MAX) {
           place(low.current, lowCount, x, 0.41, item.z, 1.78, 0.82, 0.74)
+          place(warnLow.current, lowCount, x, 0.04, item.z - 4.5, 1.15, 0.03, 2.2)
           lowCount += 1
         } else if (item.type === 'high' && highCount < MAX) {
-          place(bar.current, highCount, x, 1.42, item.z, 2.08, 0.26, 0.36)
-          place(postL.current, highCount, x - 0.72, 1.9, item.z, 0.08, 0.72, 0.08)
-          place(postR.current, highCount, x + 0.72, 1.9, item.z, 0.08, 0.72, 0.08)
+          place(bar.current, highCount, x, 1.5, item.z, 2.15, 0.34, 0.42)
+          place(postL.current, highCount, x - 0.95, 2.15, item.z, 0.1, 1.15, 0.1)
+          place(postR.current, highCount, x + 0.95, 2.15, item.z, 0.1, 1.15, 0.1)
+          place(warnHigh.current, highCount, x, 0.04, item.z - 4.5, 1.15, 0.03, 2.2)
           highCount += 1
         } else if (item.type === 'block' && blockCount < MAX) {
-          place(block.current, blockCount, x, 1.02, item.z, 1.52, 2.04, 1.18)
-          place(edge.current, blockCount, x, 1.62, item.z + 0.6, 1.58, 0.08, 0.05)
+          place(block.current, blockCount, x, 1.05, item.z, 1.55, 2.1, 1.25)
+          place(edge.current, blockCount, x, 1.85, item.z, 1.62, 0.1, 1.28)
+          place(warnBlock.current, blockCount, x, 0.04, item.z - 4.5, 1.35, 0.03, 2.2)
           blockCount += 1
         }
       }
@@ -87,6 +96,9 @@ export function Obstacles({ worldRef }) {
     commit(postR.current, highCount)
     commit(block.current, blockCount)
     commit(edge.current, blockCount)
+    commit(warnLow.current, lowCount)
+    commit(warnHigh.current, highCount)
+    commit(warnBlock.current, blockCount)
   })
 
   return (
@@ -122,6 +134,18 @@ export function Obstacles({ worldRef }) {
       <instancedMesh ref={edge} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="#ff2bd6" emissive="#ff2bd6" emissiveIntensity={1.6} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={warnLow} args={[null, null, MAX]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="#ff2bd6" transparent opacity={0.45} depthWrite={false} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={warnHigh} args={[null, null, MAX]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="#3df0ff" transparent opacity={0.4} depthWrite={false} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={warnBlock} args={[null, null, MAX]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="#ff4d6a" transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>
     </group>
   )

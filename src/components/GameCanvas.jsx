@@ -61,16 +61,16 @@ function CameraRig() {
     const boost = (world.speed - 17) / 20
     const shake = world.shake
     target.set(
-      player.x * 0.42 + (Math.random() - 0.5) * shake * 0.28,
-      3.2 + player.y * 0.16 + (Math.random() - 0.5) * shake * 0.12,
-      7.05 - boost * 0.4,
+      player.x * 0.55 + (Math.random() - 0.5) * shake * 0.22,
+      2.15 + player.y * 0.2 + (Math.random() - 0.5) * shake * 0.1,
+      4.35 - boost * 0.25,
     )
     const camera = state.camera
     camera.position.lerp(target, 1 - Math.exp(-4.2 * dt))
-    look.set(player.x * 0.55, 1.02 + player.y * 0.1, -12)
+    look.set(player.x * 0.65, 1.05 + player.y * 0.12, -7)
     camera.lookAt(look)
-    camera.rotateZ(player.x * -0.012)
-    const fov = 66 + boost * 7
+    camera.rotateZ(player.x * -0.02)
+    const fov = 58 + boost * 6
     if (Math.abs(camera.fov - fov) > 0.08) {
       camera.fov = fov
       camera.updateProjectionMatrix()
@@ -87,7 +87,7 @@ export function GameCanvas() {
     <Canvas
       className="game-canvas"
       dpr={quality === 'high' ? [1, 1.6] : [1, 1.1]}
-      camera={{ position: [0, 3.2, 7.1], fov: 66, near: 0.1, far: 280 }}
+      camera={{ position: [0, 2.15, 4.35], fov: 58, near: 0.1, far: 280 }}
       gl={{
         antialias: quality === 'high',
         alpha: false,
