@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { setMuted } from './audio.js'
 import {
+  CRASH_TIME,
   detectQuality,
   MUTE_KEY,
   QUALITY_KEY,
@@ -65,6 +66,9 @@ export const useGameStore = create((set, get) => ({
   boostTime: 0,
   nearMisses: 0,
   banner: '',
+  pausedRun: false,
+  countdown: 0,
+  crashTime: 0,
 
   setQuality: (quality, pinned = true) => {
     if (!pinned && get().qualityPinned) return
@@ -115,6 +119,9 @@ export const useGameStore = create((set, get) => ({
       boostTime: 0,
       nearMisses: 0,
       banner: '',
+      pausedRun: false,
+      countdown: 0,
+      crashTime: 0,
     })
   },
 
@@ -127,10 +134,25 @@ export const useGameStore = create((set, get) => ({
     set({ phase: 'PAUSED', ...(world ? statsFromWorld(world) : {}) })
   },
 
+  beginCountdown: () => {
+    clearInput()
+    set({ phase: 'COUNTDOWN', countdown: 3 })
+  },
+
+  tickCountdown: (dt) => {
+    if (get().phase !== 'COUNTDOWN') return
+    const countdown = get().countdown - dt
+    if (countdown <= 0) {
+      clearInput()
+      set({ phase: 'PLAYING', countdown: 0 })
+      return
+    }
+    set({ countdown })
+  },
+
   resume: () => {
     if (get().phase !== 'PAUSED') return
-    clearInput()
-    set({ phase: 'PLAYING' })
+    get().beginCountdown()
   },
 
   togglePause: () => {
@@ -139,10 +161,58 @@ export const useGameStore = create((set, get) => ({
     else if (phase === 'PAUSED') get().resume()
   },
 
+  leaveToMenu: () => {
+    if (get().phase === 'PLAYING') get().pause()
+    if (get().phase !== 'PAUSED') return
+    clearInput()
+    set({ phase: 'MENU', pausedRun: true })
+  },
+
+  continueRun: () => {
+    if (!get().pausedRun || !worldRef.current?.player?.alive) {
+      get().start()
+      return
+    }
+    get().beginCountdown()
+  },
+
   toMenu: () => {
     clearInput()
     worldRef.current = createWorld({ spawn: false })
-    set({ phase: 'MENU', score: 0, distance: 0, orbs: 0, speed: START_SPEED })
+    set({
+      phase: 'MENU',
+      pausedRun: false,
+      countdown: 0,
+      score: 0,
+      distance: 0,
+      orbs: 0,
+      speed: START_SPEED,
+    })
+  },
+
+  beginCrash: () => {
+    if (get().phase !== 'PLAYING') return
+    clearInput()
+    const world = worldRef.current
+    if (world?.player) world.player.fall = 0
+    set({
+      phase: 'CRASH',
+      crashTime: CRASH_TIME,
+      ...(world ? statsFromWorld(world) : {}),
+    })
+  },
+
+  tickCrash: (dt) => {
+    if (get().phase !== 'CRASH') return
+    const world = worldRef.current
+    const crashTime = Math.max(0, get().crashTime - dt)
+    if (world?.player) world.player.fall = 1 - crashTime / CRASH_TIME
+    if (crashTime <= 0) {
+      if (world?.player) world.player.fall = 1
+      get().gameOver()
+      return
+    }
+    set({ crashTime })
   },
 
   gameOver: () => {

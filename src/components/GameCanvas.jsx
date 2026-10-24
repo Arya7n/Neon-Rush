@@ -28,7 +28,15 @@ function Simulator() {
     if (!world) return
 
     if (store.phase === 'MENU') {
-      updateMenu(world, step)
+      if (!store.pausedRun) updateMenu(world, step)
+      return
+    }
+    if (store.phase === 'COUNTDOWN') {
+      store.tickCountdown(step)
+      return
+    }
+    if (store.phase === 'CRASH') {
+      store.tickCrash(step)
       return
     }
     if (store.phase !== 'PLAYING') return
@@ -45,7 +53,7 @@ function Simulator() {
     if (result.smashed) playSmash()
     if (result.crashed) {
       playCrash()
-      store.gameOver()
+      store.beginCrash()
       return
     }
 

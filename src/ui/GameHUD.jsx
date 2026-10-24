@@ -31,7 +31,7 @@ export function GameHUD() {
     shield ? 'Shield' : '',
   ].filter(Boolean)
 
-  if (phase !== 'PLAYING' && phase !== 'PAUSED') return null
+  if (phase !== 'PLAYING' && phase !== 'PAUSED' && phase !== 'COUNTDOWN' && phase !== 'CRASH') return null
 
   const filled = Math.max(0, Math.min(100, ((speed - START_SPEED) / (MAX_SPEED - START_SPEED)) * 100))
 
@@ -53,6 +53,11 @@ export function GameHUD() {
         </p>
       </div>
       {banner && <p className="banner">{banner}</p>}
+      {phase === 'PLAYING' && (
+        <button className="btn btn-ghost hud-pause" onClick={() => useGameStore.getState().pause()}>
+          Pause
+        </button>
+      )}
     </div>
   )
 }

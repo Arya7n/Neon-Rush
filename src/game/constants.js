@@ -26,6 +26,7 @@ export const HIGH_BAR_Y = 1.25
 export const RAMP_CLEAR_Y = 1.75
 export const LAUNCH_V = 16
 export const TRAIN_LENGTH = 12
+export const CRASH_TIME = 1.05
 export const STAND_HEIGHT = 1.68
 export const SLIDE_HEIGHT = 0.66
 

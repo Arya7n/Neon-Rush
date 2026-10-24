@@ -3,7 +3,7 @@ import { GameCanvas } from './components/GameCanvas.jsx'
 import { useGameHotkeys } from './game/controls.js'
 import { GameOver } from './ui/GameOver.jsx'
 import { GameHUD, MuteButton } from './ui/GameHUD.jsx'
-import { PauseScreen } from './ui/PauseScreen.jsx'
+import { Countdown, PauseScreen } from './ui/PauseScreen.jsx'
 import { StartScreen } from './ui/StartScreen.jsx'
 import { TouchControls } from './ui/TouchControls.jsx'
 
@@ -38,6 +38,7 @@ export default function App() {
         <GameHUD />
         <StartScreen />
         <PauseScreen />
+        <Countdown />
         <GameOver />
         <TouchControls />
       </div>

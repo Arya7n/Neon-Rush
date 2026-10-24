@@ -62,6 +62,7 @@ export function createWorld({ spawn = true, rng = Math.random } = {}) {
       jumpBuffer: 0,
       slideBuffer: 0,
       land: 0,
+      fall: 0,
       alive: true,
     },
     obstacles: Array.from({ length: OBSTACLE_POOL }, obstacleSlot),

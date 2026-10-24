@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { resumeAudio } from '../game/audio.js'
+import { playStart, resumeAudio } from '../game/audio.js'
 import { useGameStore } from '../game/gameStore.js'
 
 export function PauseScreen() {
@@ -21,9 +21,16 @@ export function PauseScreen() {
           <button
             ref={resumeRef}
             className="btn btn-primary"
-            onClick={() => useGameStore.getState().resume()}
+            onClick={() => {
+              resumeAudio()
+              playStart()
+              useGameStore.getState().resume()
+            }}
           >
             Resume
+          </button>
+          <button className="btn btn-ghost" onClick={() => useGameStore.getState().leaveToMenu()}>
+            Menu
           </button>
           <button
             className="btn btn-ghost"
@@ -36,6 +43,17 @@ export function PauseScreen() {
           </button>
         </div>
       </section>
+    </div>
+  )
+}
+
+export function Countdown() {
+  const phase = useGameStore((state) => state.phase)
+  const countdown = useGameStore((state) => state.countdown)
+  if (phase !== 'COUNTDOWN') return null
+  return (
+    <div className="countdown" aria-live="assertive">
+      <strong>{Math.ceil(countdown)}</strong>
     </div>
   )
 }

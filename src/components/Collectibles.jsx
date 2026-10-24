@@ -43,7 +43,8 @@ export function Collectibles({ worldRef }) {
 
   useFrame(() => {
     if (!core.current || !shield.current || !magnet.current || !boost.current || !smash.current) return
-    const visible = useGameStore.getState().phase !== 'MENU'
+    const phase = useGameStore.getState().phase
+    const visible = phase !== 'MENU' || useGameStore.getState().pausedRun
     const world = worldRef.current
     const list = world.collectibles
     let energy = 0

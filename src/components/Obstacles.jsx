@@ -71,7 +71,8 @@ export function Obstacles({ worldRef }) {
 
   useFrame(() => {
     if (!low.current || !warnBlock.current || !legs.current || !wheels.current || !windows.current || !train.current || !ramp.current) return
-    const visible = useGameStore.getState().phase !== 'MENU'
+    const phase = useGameStore.getState().phase
+    const visible = phase !== 'MENU' || useGameStore.getState().pausedRun
     const list = worldRef.current.obstacles
     let lowCount = 0
     let highCount = 0

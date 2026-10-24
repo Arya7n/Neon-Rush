@@ -10,6 +10,8 @@ export function StartScreen() {
   const setQuality = useGameStore((state) => state.setQuality)
   const themeId = useGameStore((state) => state.theme)
   const setTheme = useGameStore((state) => state.setTheme)
+  const pausedRun = useGameStore((state) => state.pausedRun)
+  const distance = useGameStore((state) => state.distance)
   const startRef = useRef(null)
 
   useEffect(() => {
@@ -22,6 +24,12 @@ export function StartScreen() {
     resumeAudio()
     playStart()
     useGameStore.getState().start()
+  }
+
+  const continueRun = () => {
+    resumeAudio()
+    playStart()
+    useGameStore.getState().continueRun()
   }
 
   return (
@@ -46,9 +54,21 @@ export function StartScreen() {
             </button>
           ))}
         </div>
-        <button ref={startRef} className="btn btn-primary" onClick={start}>
-          Start Run
-        </button>
+        {pausedRun ? (
+          <div className="action-row">
+            <button ref={startRef} className="btn btn-primary" onClick={continueRun}>
+              Continue
+            </button>
+            <button className="btn btn-ghost" onClick={start}>
+              Start Run
+            </button>
+          </div>
+        ) : (
+          <button ref={startRef} className="btn btn-primary" onClick={start}>
+            Start Run
+          </button>
+        )}
+        {pausedRun && <p className="best">Paused at {Math.floor(distance)}m</p>}
         <div className="controls">
           <p><b>A / D</b> or arrows change lanes</p>
           <p><b>W / ↑ / Space</b> jump</p>

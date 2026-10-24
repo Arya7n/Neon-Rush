@@ -219,6 +219,28 @@ h2 { font-size: 32px; font-weight: 650; }
   padding-right: 132px;
 }
 
+.hud-pause {
+  position: absolute;
+  top: 58px;
+  right: 18px;
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: rgba(4, 6, 12, 0.28);
+}
+
+.countdown strong {
+  font-size: clamp(96px, 18vw, 160px);
+  line-height: 1;
+  color: white;
+  text-shadow: 0 0 24px var(--cyan);
+}
+
 .score-block span, .stat span {
   display: block;
   color: var(--cyan);

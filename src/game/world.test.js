@@ -265,6 +265,38 @@ test('speed is capped and an autopilot survives a minute of traffic', () => {
   assert.equal(run.player.alive, true)
 })
 
+test('menu keeps a paused run and counts down before it resumes', () => {
+  useGameStore.getState().start()
+  worldRef.current.distance = 80
+  useGameStore.getState().pause()
+  useGameStore.getState().leaveToMenu()
+  assert.equal(useGameStore.getState().phase, 'MENU')
+  assert.equal(useGameStore.getState().pausedRun, true)
+  assert.equal(worldRef.current.distance, 80)
+  useGameStore.getState().continueRun()
+  assert.equal(useGameStore.getState().phase, 'COUNTDOWN')
+  assert.equal(useGameStore.getState().countdown, 3)
+  useGameStore.getState().tickCountdown(3)
+  assert.equal(useGameStore.getState().phase, 'PLAYING')
+  assert.equal(worldRef.current.distance, 80)
+})
+
+test('a hit collapses the runner before the results screen', () => {
+  useGameStore.getState().start()
+  const world = worldRef.current
+  world.distance = 40
+  useGameStore.getState().beginCrash()
+  assert.equal(useGameStore.getState().phase, 'CRASH')
+  useGameStore.getState().tickCrash(0.4)
+  assert.equal(useGameStore.getState().phase, 'CRASH')
+  assert.ok(world.player.fall > 0.3 && world.player.fall < 0.5)
+  assert.equal(world.distance, 40)
+  useGameStore.getState().tickCrash(1)
+  assert.equal(useGameStore.getState().phase, 'GAME_OVER')
+  assert.equal(world.player.fall, 1)
+  assert.equal(world.distance, 40)
+})
+
 test('restart replaces the world and returns to a clean run', () => {
   useGameStore.getState().start()
   const first = worldRef.current

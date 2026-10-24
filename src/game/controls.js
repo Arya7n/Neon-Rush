@@ -19,11 +19,20 @@ export function useGameHotkeys() {
         event.preventDefault()
         resumeAudio()
         playStart()
-        store.start()
+        if (store.pausedRun) store.continueRun()
+        else store.start()
         return
       }
 
-      if ((phase === 'GAME_OVER' || phase === 'PAUSED') && event.key === 'Enter') {
+      if (phase === 'PAUSED' && event.key === 'Enter') {
+        event.preventDefault()
+        resumeAudio()
+        playStart()
+        store.resume()
+        return
+      }
+
+      if (phase === 'GAME_OVER' && event.key === 'Enter') {
         event.preventDefault()
         resumeAudio()
         store.restart()

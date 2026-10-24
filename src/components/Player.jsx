@@ -51,6 +51,40 @@ export function Player() {
   useFrame((_, dt) => {
     const world = worldRef.current
     const player = world.player
+    const fall = player.fall || 0
+    if (fall > 0.001) {
+      const t = Math.min(1, fall)
+      const stumble = Math.sin((Math.min(t, 0.22) / 0.22) * Math.PI)
+      const drop = Math.min(1, Math.max(0, (t - 0.12) / 0.7))
+      const eased = drop * drop * (3 - 2 * drop)
+      root.current.position.x = player.x
+      visual.current.position.y = player.y + stumble * 0.28 * (1 - eased)
+      visual.current.rotation.x = -stumble * 0.35 + eased * 1.4
+      visual.current.rotation.z = eased * 1.05
+      body.current.rotation.x = -0.15 - stumble * 0.55 * (1 - eased)
+      body.current.position.y = 0.52 - eased * 0.28
+      body.current.scale.set(1, 1, 1)
+      legL.current.rotation.x = eased * 0.55
+      legR.current.rotation.x = -eased * 1.15
+      legL.current.rotation.z = eased * 0.25
+      legR.current.rotation.z = -eased * 0.15
+      kneeL.current.rotation.x = -eased * 1.7
+      kneeR.current.rotation.x = -eased * 0.45
+      armL.current.rotation.x = -0.4 + stumble * 1.1 * (1 - eased) + eased * 1.5
+      armR.current.rotation.x = -0.5 - eased * 0.2
+      armL.current.rotation.z = eased * 0.9
+      armR.current.rotation.z = -eased * 0.55
+      shadow.current.position.y = 0.025
+      shadow.current.scale.set(1.15, 0.7, 1)
+      if (aura.current) aura.current.visible = false
+      return
+    }
+    visual.current.rotation.x = 0
+    legL.current.rotation.z = 0
+    legR.current.rotation.z = 0
+    armL.current.rotation.z = 0
+    armR.current.rotation.z = 0
+
     const running = player.y <= 0.04 && !player.sliding
     const step = dt > 0 ? Math.min(dt, 0.05) : 0.016
     const blend = 1 - Math.exp(-10 * step)
