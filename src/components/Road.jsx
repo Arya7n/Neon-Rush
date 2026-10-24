@@ -91,12 +91,12 @@ export function Road() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -24]}>
         <planeGeometry args={[8.15, 210]} />
         <meshStandardMaterial
-          color="#8b93a8"
-          metalness={0.72}
-          roughness={0.38}
-          emissive="#ffffff"
+          color="#141822"
+          metalness={0.28}
+          roughness={0.68}
+          emissive="#d7fbff"
           emissiveMap={markings}
-          emissiveIntensity={0.85}
+          emissiveIntensity={1.35}
         />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-6.1, 0.012, -24]}>
@@ -116,11 +116,11 @@ export function Road() {
         <meshStandardMaterial color="#121722" emissive="#3a1230" emissiveIntensity={0.35} metalness={0.6} roughness={0.3} />
       </mesh>
       <instancedMesh ref={left} args={[null, null, CHEVRONS]}>
-        <boxGeometry args={[0.55, 0.03, 1.35]} />
+        <boxGeometry args={[0.22, 0.025, 0.85]} />
         <meshBasicMaterial toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={right} args={[null, null, CHEVRONS]}>
-        <boxGeometry args={[0.55, 0.03, 1.35]} />
+        <boxGeometry args={[0.22, 0.025, 0.85]} />
         <meshBasicMaterial toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={streaks} args={[null, null, 16]}>

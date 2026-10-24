@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { AdaptiveDpr, PerformanceMonitor } from '@react-three/drei'
+import { AdaptiveDpr } from '@react-three/drei'
 import * as THREE from 'three'
 import { playCollect, playCrash, playJump, playSlide } from '../game/audio.js'
 import { useGameStore, worldRef } from '../game/gameStore.js'
@@ -102,15 +102,14 @@ export function GameCanvas() {
     >
       <color attach="background" args={['#070814']} />
       <fog attach="fog" args={['#070814', 30, 165]} />
-      <PerformanceMonitor onDecline={() => useGameStore.getState().setQuality('low', false)} />
       <AdaptiveDpr pixelated />
       <Simulator />
       <CameraRig />
-      <ambientLight intensity={0.32} />
-      <hemisphereLight args={['#2a3d66', '#1a0c16', 0.6]} />
-      <directionalLight position={[5, 12, 6]} intensity={0.75} color="#d5e9ff" />
-      <pointLight position={[-2.4, 2.5, 1.5]} color="#3df0ff" intensity={26} distance={18} decay={2} />
-      <pointLight position={[2.8, 1.7, -1]} color="#ff2bd6" intensity={16} distance={14} decay={2} />
+      <ambientLight intensity={0.42} />
+      <hemisphereLight args={['#31486f', '#241018', 0.7]} />
+      <directionalLight position={[5, 12, 6]} intensity={0.85} color="#d5e9ff" />
+      <pointLight position={[-2.2, 2.4, 2.2]} color="#3df0ff" intensity={7} distance={16} decay={2} />
+      <pointLight position={[2.4, 1.8, 1]} color="#ff2bd6" intensity={5} distance={14} decay={2} />
       <City worldRef={worldRef} />
       <Road />
       <Obstacles worldRef={worldRef} />

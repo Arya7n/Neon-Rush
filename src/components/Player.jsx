@@ -47,7 +47,7 @@ export function Player() {
     visual.current.position.y = player.y + bob
     visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.16
     body.current.rotation.x = player.sliding ? -1.05 : 0
-    body.current.position.y = player.sliding ? 0.35 : 0.9
+    body.current.position.y = player.sliding ? 0.28 : 0.56
     const squash = player.land || 0
     body.current.scale.set(1 + squash * 0.08, 1 - squash * 0.16, 1)
     const swing = running ? Math.sin(cycle) : 0

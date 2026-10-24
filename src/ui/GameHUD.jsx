@@ -35,7 +35,7 @@ export function GameHUD() {
         <p className="stat stat-speed">
           <span>Speed</span>
           <b>{displaySpeed(speed)}</b>
-          <i style={{ width: `${filled}%` }} />
+          <span className="meter"><i style={{ width: `${filled}%` }} /></span>
         </p>
       </div>
     </div>
