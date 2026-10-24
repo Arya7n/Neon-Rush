@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../game/gameStore.js'
 import { LANE_X, OBSTACLE_POOL } from '../game/constants.js'
+import { getTheme } from '../game/themes.js'
 
 const DUMMY = new THREE.Object3D()
 const MAX = 20
@@ -23,6 +24,7 @@ function commit(mesh, count) {
 }
 
 export function Obstacles({ worldRef }) {
+  const theme = getTheme(useGameStore((state) => state.theme))
   const low = useRef()
   const bar = useRef()
   const postL = useRef()
@@ -106,8 +108,8 @@ export function Obstacles({ worldRef }) {
       <instancedMesh ref={low} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial
-          color="#ff4de0"
-          emissive="#ff2bd6"
+          color={theme.secondary}
+          emissive={theme.secondary}
           emissiveIntensity={0.9}
           map={stripes}
           emissiveMap={stripes}
@@ -117,15 +119,15 @@ export function Obstacles({ worldRef }) {
       </instancedMesh>
       <instancedMesh ref={bar} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#d9fbff" emissive="#3df0ff" emissiveIntensity={1.8} toneMapped={false} />
+        <meshStandardMaterial color={theme.primary} emissive={theme.primary} emissiveIntensity={1.8} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={postL} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#9ff7ff" emissive="#3df0ff" emissiveIntensity={1.1} toneMapped={false} />
+        <meshStandardMaterial color={theme.primary} emissive={theme.primary} emissiveIntensity={1.1} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={postR} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#9ff7ff" emissive="#3df0ff" emissiveIntensity={1.1} toneMapped={false} />
+        <meshStandardMaterial color={theme.primary} emissive={theme.primary} emissiveIntensity={1.1} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={block} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
@@ -133,19 +135,19 @@ export function Obstacles({ worldRef }) {
       </instancedMesh>
       <instancedMesh ref={edge} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#ff2bd6" emissive="#ff2bd6" emissiveIntensity={1.6} toneMapped={false} />
+        <meshStandardMaterial color={theme.secondary} emissive={theme.secondary} emissiveIntensity={1.6} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={warnLow} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="#ff2bd6" transparent opacity={0.45} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial color={theme.secondary} transparent opacity={0.45} depthWrite={false} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={warnHigh} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="#3df0ff" transparent opacity={0.4} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial color={theme.primary} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>
       <instancedMesh ref={warnBlock} args={[null, null, MAX]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="#ff4d6a" transparent opacity={0.4} depthWrite={false} toneMapped={false} />
+        <meshBasicMaterial color={theme.danger} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>
     </group>
   )

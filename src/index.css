@@ -166,6 +166,50 @@ h2 { font-size: 32px; font-weight: 650; }
 
 .best { margin: 0; color: var(--magenta); letter-spacing: 0.08em; }
 
+.themes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.theme {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(147, 164, 184, 0.35);
+  background: rgba(6, 8, 16, 0.45);
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.theme i {
+  width: 22px;
+  height: 8px;
+  display: block;
+}
+
+.theme.on {
+  color: white;
+  border-color: var(--cyan);
+}
+
+.banner {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  margin: 0;
+  letter-spacing: 0.28em;
+  font-size: 13px;
+  color: white;
+  text-shadow: 0 0 12px var(--cyan);
+}
+
 .hud {
   display: flex;
   justify-content: space-between;
@@ -189,7 +233,7 @@ h2 { font-size: 32px; font-weight: 650; }
   font-variant-numeric: tabular-nums;
 }
 
-.stat-row { display: flex; gap: 18px; }
+.stat-row { display: flex; gap: 18px; flex-wrap: wrap; }
 .stat { margin: 0; }
 .stat b {
   display: block;

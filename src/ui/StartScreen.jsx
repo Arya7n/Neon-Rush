@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { playStart, resumeAudio } from '../game/audio.js'
 import { useGameStore } from '../game/gameStore.js'
+import { THEMES } from '../game/themes.js'
 
 export function StartScreen() {
   const phase = useGameStore((state) => state.phase)
   const best = useGameStore((state) => state.best)
   const quality = useGameStore((state) => state.quality)
   const setQuality = useGameStore((state) => state.setQuality)
+  const themeId = useGameStore((state) => state.theme)
+  const setTheme = useGameStore((state) => state.setTheme)
   const startRef = useRef(null)
 
   useEffect(() => {
@@ -29,7 +32,20 @@ export function StartScreen() {
           NEON
           <span> RUSH</span>
         </h1>
-        <p className="tagline">Three lanes. No brakes.</p>
+        <p className="tagline">Three lanes. No brakes. Chain energy, skim the traffic, hold a shield.</p>
+        <div className="themes" role="listbox" aria-label="City theme">
+          {THEMES.map((theme) => (
+            <button
+              key={theme.id}
+              className={theme.id === themeId ? 'theme on' : 'theme'}
+              onClick={() => setTheme(theme.id)}
+              aria-pressed={theme.id === themeId}
+            >
+              <i style={{ background: `linear-gradient(90deg, ${theme.primary}, ${theme.secondary})` }} />
+              {theme.name}
+            </button>
+          ))}
+        </div>
         <button ref={startRef} className="btn btn-primary" onClick={start}>
           Start Run
         </button>

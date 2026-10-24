@@ -10,6 +10,8 @@ import {
   STAND_HEIGHT,
 } from './constants.js'
 
+export const NEAR_MISS_PAD = 0.9
+
 export function laneCenter(lane) {
   return LANE_X[lane] ?? 0
 }
@@ -36,4 +38,10 @@ export function overlapsPlayer(player, obstacle) {
 
 export function overlapsOrb(player, orb) {
   return overlapsXZ(player, orb.lane, ORB_HIT_X, ORB_HIT_Z, orb.z)
+}
+
+/** Close enough to feel the pass, far enough that the hit boxes do not overlap. */
+export function isNearMiss(player, obstacle) {
+  const dx = Math.abs(player.x - laneCenter(obstacle.lane))
+  return dx > HIT_X && dx < HIT_X + NEAR_MISS_PAD
 }

@@ -2,10 +2,11 @@ import { useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { AdaptiveDpr } from '@react-three/drei'
 import * as THREE from 'three'
-import { playCollect, playCrash, playJump, playSlide } from '../game/audio.js'
+import { playCollect, playCrash, playJump, playNear, playShield, playSlide } from '../game/audio.js'
 import { useGameStore, worldRef } from '../game/gameStore.js'
 import { consumeInput } from '../game/inputBuffer.js'
 import { statsFromWorld } from '../game/score.js'
+import { getTheme } from '../game/themes.js'
 import { updateMenu, updateWorld } from '../game/world.js'
 import { City } from './City.jsx'
 import { Collectibles } from './Collectibles.jsx'
@@ -38,6 +39,8 @@ function Simulator() {
     if (beforeY <= 0.001 && world.player.vy > 4) playJump()
     if (!beforeSlide && world.player.sliding) playSlide()
     if (result.collected) playCollect()
+    if (result.nearMisses) playNear()
+    if (result.powered || result.shielded) playShield()
     if (result.crashed) {
       playCrash()
       store.gameOver()
@@ -82,6 +85,7 @@ function CameraRig() {
 
 export function GameCanvas() {
   const quality = useGameStore((state) => state.quality)
+  const theme = getTheme(useGameStore((state) => state.theme))
 
   return (
     <Canvas
@@ -95,21 +99,21 @@ export function GameCanvas() {
         powerPreference: 'high-performance',
       }}
       onCreated={({ gl }) => {
-        gl.setClearColor('#070814')
+        gl.setClearColor(theme.fog)
         gl.toneMapping = THREE.ACESFilmicToneMapping
         gl.toneMappingExposure = 1.12
       }}
     >
-      <color attach="background" args={['#070814']} />
-      <fog attach="fog" args={['#070814', 30, 165]} />
+      <color attach="background" args={[theme.fog]} />
+      <fog attach="fog" args={[theme.fog, 30, 165]} />
       <AdaptiveDpr pixelated />
       <Simulator />
       <CameraRig />
       <ambientLight intensity={0.42} />
       <hemisphereLight args={['#31486f', '#241018', 0.7]} />
       <directionalLight position={[5, 12, 6]} intensity={0.85} color="#d5e9ff" />
-      <pointLight position={[-2.2, 2.4, 2.2]} color="#3df0ff" intensity={7} distance={16} decay={2} />
-      <pointLight position={[2.4, 1.8, 1]} color="#ff2bd6" intensity={5} distance={14} decay={2} />
+      <pointLight position={[-2.2, 2.4, 2.2]} color={theme.primary} intensity={7} distance={16} decay={2} />
+      <pointLight position={[2.4, 1.8, 1]} color={theme.secondary} intensity={5} distance={14} decay={2} />
       <City worldRef={worldRef} />
       <Road />
       <Obstacles worldRef={worldRef} />

@@ -82,8 +82,10 @@ export function planRow(rowDistance, prevOpen, rng = Math.random) {
   for (let i = 0; i < count; i += 1) {
     orbs.push({
       lane: orbLane,
+      kind: 'energy',
       spawnAt: mid + (i - (count - 1) / 2) * 2.3,
     })
   }
+  if (orbs.length && rng() < 0.16) orbs[0].kind = 'shield'
   return { obstacles: pattern, orbs, open, gap }
 }

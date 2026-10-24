@@ -13,18 +13,19 @@ import {
   SLIDE_TIME,
   SPAWN_AHEAD,
   START_SPEED,
+  HIT_Z,
 } from './constants.js'
-import { overlapsOrb, overlapsPlayer } from './collision.js'
+import { isNearMiss, overlapsOrb, overlapsPlayer } from './collision.js'
 import { speedForDistance } from './difficulty.js'
 import { clamp } from './math.js'
 import { planRow } from './spawning.js'
 
 function obstacleSlot() {
-  return { active: false, lane: 1, type: 'low', spawnAt: 0, z: 40 }
+  return { active: false, lane: 1, type: 'low', spawnAt: 0, z: 40, resolved: false }
 }
 
 function orbSlot() {
-  return { active: false, lane: 1, spawnAt: 0, z: 40 }
+  return { active: false, lane: 1, spawnAt: 0, z: 40, kind: 'energy' }
 }
 
 export function createWorld({ spawn = true, rng = Math.random } = {}) {
@@ -34,6 +35,14 @@ export function createWorld({ spawn = true, rng = Math.random } = {}) {
     elapsed: 0,
     speed: START_SPEED,
     orbsCollected: 0,
+    bonus: 0,
+    combo: 0,
+    comboTimer: 0,
+    maxCombo: 0,
+    shield: 0,
+    nearMisses: 0,
+    banner: '',
+    bannerTime: 0,
     nextSpawn: INITIAL_SPAWN,
     lastGap: 36,
     prevOpen: [0, 1, 2],
@@ -76,12 +85,14 @@ function spawnRow(world) {
     slot.type = item.type
     slot.lane = item.lane
     slot.spawnAt = rowAt
+    slot.resolved = false
     slot.z = world.distance - rowAt
   }
   for (const orb of plan.orbs) {
     const slot = world.collectibles.find((entry) => !entry.active)
     if (!slot) break
     slot.active = true
+    slot.kind = orb.kind || 'energy'
     slot.lane = orb.lane
     slot.spawnAt = orb.spawnAt
     slot.z = world.distance - orb.spawnAt
@@ -99,9 +110,14 @@ function recycle(list, distance) {
   }
 }
 
+function flash(world, text) {
+  world.banner = text
+  world.bannerTime = 1.15
+}
+
 function step(world, dt, input) {
   const player = world.player
-  if (!player.alive) return { collected: 0, crashed: false }
+  if (!player.alive) return { collected: 0, crashed: false, shielded: false, nearMisses: 0, powered: 0 }
 
   if (input.laneDelta) {
     player.lane = clamp(player.lane + input.laneDelta, 0, 2)
@@ -146,6 +162,9 @@ function step(world, dt, input) {
   world.speed = speedForDistance(world.distance)
   world.distance += world.speed * dt
   world.elapsed += dt
+  world.bannerTime = Math.max(0, world.bannerTime - dt)
+  world.comboTimer = Math.max(0, world.comboTimer - dt)
+  if (world.comboTimer === 0) world.combo = 0
 
   recycle(world.obstacles, world.distance)
   recycle(world.collectibles, world.distance)
@@ -157,37 +176,78 @@ function step(world, dt, input) {
   }
 
   let collected = 0
+  let powered = 0
+  let shielded = false
   for (const orb of world.collectibles) {
     if (!orb.active || !overlapsOrb(player, orb)) continue
     orb.active = false
+    if (orb.kind === 'shield') {
+      world.shield = 1
+      powered += 1
+      flash(world, 'SHIELD')
+      continue
+    }
+    world.combo = Math.min(8, world.combo + 1)
+    world.maxCombo = Math.max(world.maxCombo, world.combo)
+    world.comboTimer = 3.2
+    world.bonus += 20 * (world.combo - 1)
     world.orbsCollected += 1
     collected += 1
   }
 
+  let nearMisses = 0
   for (const obstacle of world.obstacles) {
-    if (!obstacle.active || !overlapsPlayer(player, obstacle)) continue
-    player.alive = false
-    world.shake = 1
-    return { collected, crashed: true }
+    if (!obstacle.active || obstacle.resolved || obstacle.z <= HIT_Z) continue
+    obstacle.resolved = true
+    if (!isNearMiss(player, obstacle)) continue
+    nearMisses += 1
+    world.nearMisses += 1
+    world.bonus += 40
+    world.shake = Math.max(world.shake, 0.16)
+    flash(world, 'NEAR MISS')
   }
 
-  return { collected, crashed: false }
+  for (const obstacle of world.obstacles) {
+    if (!obstacle.active || !overlapsPlayer(player, obstacle)) continue
+    obstacle.active = false
+    obstacle.resolved = true
+    if (world.shield > 0) {
+      world.shield -= 1
+      world.combo = 0
+      world.comboTimer = 0
+      world.shake = Math.max(world.shake, 0.45)
+      flash(world, 'SHIELD BREAK')
+      shielded = true
+      continue
+    }
+    player.alive = false
+    world.shake = 1
+    return { collected, crashed: true, shielded: false, nearMisses, powered }
+  }
+
+  return { collected, crashed: false, shielded, nearMisses, powered }
 }
 
 export function updateWorld(world, dt, input) {
   const steps = Math.max(1, Math.ceil(dt / 0.016))
   const slice = dt / steps
   let collected = 0
+  let nearMisses = 0
+  let powered = 0
   let crashed = false
+  let shielded = false
   for (let i = 0; i < steps; i += 1) {
     const result = step(world, slice, i === 0 ? input : { laneDelta: 0, jump: false, slide: false })
     collected += result.collected
+    nearMisses += result.nearMisses
+    powered += result.powered
+    if (result.shielded) shielded = true
     if (result.crashed) {
       crashed = true
       break
     }
   }
-  return { collected, crashed }
+  return { collected, crashed, shielded, nearMisses, powered }
 }
 
 export function updateMenu(world, dt) {

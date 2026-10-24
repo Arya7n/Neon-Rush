@@ -5,7 +5,9 @@ import {
   MUTE_KEY,
   QUALITY_KEY,
   START_SPEED,
+  THEME_KEY,
 } from './constants.js'
+import { applyTheme, getTheme } from './themes.js'
 import { clearInput } from './inputBuffer.js'
 import { readBest, statsFromWorld, writeBest } from './score.js'
 import { createWorld } from './world.js'
@@ -28,7 +30,19 @@ function initialQuality() {
   return { quality: detectQuality(), qualityPinned: false }
 }
 
+function initialTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY)
+    if (getTheme(saved).id === saved) return saved
+  } catch {
+    /* ignore */
+  }
+  return 'neon'
+}
+
 const qualityState = initialQuality()
+const startingTheme = initialTheme()
+applyTheme(startingTheme)
 
 export const worldRef = { current: createWorld({ spawn: false }) }
 
@@ -42,6 +56,12 @@ export const useGameStore = create((set, get) => ({
   muted: readFlag(MUTE_KEY),
   quality: qualityState.quality,
   qualityPinned: qualityState.qualityPinned,
+  theme: startingTheme,
+  combo: 0,
+  maxCombo: 0,
+  shield: 0,
+  nearMisses: 0,
+  banner: '',
 
   setQuality: (quality, pinned = true) => {
     if (!pinned && get().qualityPinned) return
@@ -51,6 +71,17 @@ export const useGameStore = create((set, get) => ({
       /* ignore */
     }
     set({ quality, qualityPinned: pinned ? true : get().qualityPinned })
+  },
+
+  setTheme: (theme) => {
+    const id = getTheme(theme).id
+    try {
+      localStorage.setItem(THEME_KEY, id)
+    } catch {
+      /* ignore */
+    }
+    applyTheme(id)
+    set({ theme: id })
   },
 
   toggleMute: () => {
@@ -73,6 +104,11 @@ export const useGameStore = create((set, get) => ({
       distance: 0,
       orbs: 0,
       speed: START_SPEED,
+      combo: 0,
+      maxCombo: 0,
+      shield: 0,
+      nearMisses: 0,
+      banner: '',
     })
   },
 

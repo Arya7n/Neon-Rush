@@ -3,21 +3,22 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { TRACK_LEAD, TRACK_LENGTH } from '../game/constants.js'
 import { loopZ } from '../game/math.js'
-import { worldRef } from '../game/gameStore.js'
+import { useGameStore, worldRef } from '../game/gameStore.js'
+import { getTheme } from '../game/themes.js'
 
 const DUMMY = new THREE.Object3D()
 const CHEVRONS = 24
 
-function makeMarkings() {
+function makeMarkings(theme) {
   const canvas = document.createElement('canvas')
   canvas.width = 128
   canvas.height = 512
   const ctx = canvas.getContext('2d')
   ctx.clearRect(0, 0, 128, 512)
-  ctx.fillStyle = '#3df0ff'
+  ctx.fillStyle = theme.primary
   ctx.fillRect(3, 0, 4, 512)
   ctx.fillRect(121, 0, 4, 512)
-  ctx.fillStyle = '#ff2bd6'
+  ctx.fillStyle = theme.secondary
   for (const x of [42, 84]) {
     for (let y = 8; y < 512; y += 64) ctx.fillRect(x, y, 4, 28)
   }
@@ -31,7 +32,8 @@ function makeMarkings() {
 }
 
 export function Road() {
-  const markings = useMemo(() => makeMarkings(), [])
+  const theme = getTheme(useGameStore((state) => state.theme))
+  const markings = useMemo(() => makeMarkings(theme), [theme])
   const left = useRef()
   const right = useRef()
   const streaks = useRef()
@@ -40,8 +42,8 @@ export function Road() {
     left.current.frustumCulled = false
     right.current.frustumCulled = false
     streaks.current.frustumCulled = false
-    const cyan = new THREE.Color('#3df0ff')
-    const magenta = new THREE.Color('#ff2bd6')
+    const cyan = new THREE.Color(theme.primary)
+    const magenta = new THREE.Color(theme.secondary)
     for (let i = 0; i < CHEVRONS; i += 1) {
       const color = i % 2 === 0 ? cyan : magenta
       left.current.setColorAt(i, color)
@@ -49,7 +51,8 @@ export function Road() {
     }
     left.current.instanceColor.needsUpdate = true
     right.current.instanceColor.needsUpdate = true
-  }, [])
+    if (streaks.current?.material?.color) streaks.current.material.color.set(theme.primary)
+  }, [theme])
 
   useFrame(() => {
     const { distance, speed } = worldRef.current

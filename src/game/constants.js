@@ -37,6 +37,7 @@ export const ORB_POOL = 28
 export const BEST_KEY = 'neon-rush-best'
 export const QUALITY_KEY = 'neon-rush-quality'
 export const MUTE_KEY = 'neon-rush-muted'
+export const THEME_KEY = 'neon-rush-theme'
 
 export function detectQuality() {
   if (typeof navigator === 'undefined') return 'high'

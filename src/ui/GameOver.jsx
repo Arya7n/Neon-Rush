@@ -10,6 +10,8 @@ export function GameOver() {
   const best = useGameStore((state) => state.best)
   const speed = useGameStore((state) => state.speed)
   const orbs = useGameStore((state) => state.orbs)
+  const nearMisses = useGameStore((state) => state.nearMisses)
+  const maxCombo = useGameStore((state) => state.maxCombo)
   const restartRef = useRef(null)
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export function GameOver() {
         <dl className="summary">
           <div><dt>Distance</dt><dd>{Math.floor(distance)}m</dd></div>
           <div><dt>Energy</dt><dd>{orbs}</dd></div>
+          <div><dt>Near miss</dt><dd>{nearMisses || 0}</dd></div>
+          <div><dt>Best combo</dt><dd>{maxCombo > 1 ? `x${maxCombo}` : '—'}</dd></div>
           <div><dt>Top speed</dt><dd>{displaySpeed(speed)}</dd></div>
           <div><dt>Best</dt><dd>{Math.floor(best).toLocaleString('en-US')}</dd></div>
         </dl>

@@ -1,15 +1,20 @@
 import { BEST_KEY } from './constants.js'
 
-export function computeScore(distance, orbs) {
-  return Math.floor(distance) * 2 + orbs * 50
+export function computeScore(distance, orbs, bonus = 0) {
+  return Math.floor(distance) * 2 + orbs * 50 + bonus
 }
 
 export function statsFromWorld(world) {
   return {
-    score: computeScore(world.distance, world.orbsCollected),
+    score: computeScore(world.distance, world.orbsCollected, world.bonus || 0),
     distance: world.distance,
     orbs: world.orbsCollected,
     speed: world.speed,
+    combo: world.combo || 0,
+    maxCombo: world.maxCombo || 0,
+    shield: world.shield || 0,
+    nearMisses: world.nearMisses || 0,
+    banner: world.bannerTime > 0 ? world.banner : '',
   }
 }
 

@@ -103,6 +103,47 @@ test('jump clears low barriers, slide clears bars, blocks ignore vertical moves'
   assert.equal(overlapsPlayer(jumper.player, { ...jumper.obstacles[0], z: 0 }), false)
 })
 
+test('combo, near misses, and shields change the score without ending a shielded hit', () => {
+  const combo = createWorld({ rng: mulberry32(4) })
+  isolate(combo)
+  const orb = combo.collectibles[0]
+  orb.active = true
+  orb.kind = 'energy'
+  orb.lane = 1
+  orb.spawnAt = combo.distance
+  updateWorld(combo, 0.001, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(combo.orbsCollected, 1)
+  assert.equal(combo.combo, 1)
+  orb.active = true
+  orb.spawnAt = combo.distance
+  updateWorld(combo, 0.001, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(combo.combo, 2)
+  assert.ok(combo.bonus >= 20)
+
+  const skim = createWorld({ rng: mulberry32(5) })
+  isolate(skim)
+  skim.obstacles[0].active = true
+  skim.obstacles[0].type = 'block'
+  skim.obstacles[0].lane = 1
+  skim.obstacles[0].resolved = false
+  skim.obstacles[0].spawnAt = skim.distance - 0.7
+  skim.player.x = 1.45
+  const skimmed = updateWorld(skim, 0.05, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(skimmed.crashed, false)
+  assert.equal(skim.nearMisses, 1)
+  assert.equal(skim.bonus, 40)
+
+  const guarded = createWorld({ rng: mulberry32(6) })
+  isolate(guarded)
+  place(guarded, 'block', 1)
+  guarded.shield = 1
+  const blocked = updateWorld(guarded, 0.001, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(blocked.crashed, false)
+  assert.equal(blocked.shielded, true)
+  assert.equal(guarded.player.alive, true)
+  assert.equal(guarded.shield, 0)
+})
+
 test('speed is capped and an autopilot survives a minute of traffic', () => {
   const world = createWorld({ rng: mulberry32(42) })
   world.distance = 5000

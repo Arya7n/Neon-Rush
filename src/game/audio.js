@@ -93,6 +93,14 @@ export function playCrash() {
   tone({ freq: 90, to: 30, dur: 0.4, type: 'triangle', gain: 0.08, delay: 0.02 })
 }
 
+export function playNear() {
+  tone({ freq: 520, to: 880, dur: 0.09, type: 'square', gain: 0.04 })
+}
+
+export function playShield() {
+  tone({ freq: 180, to: 420, dur: 0.18, type: 'triangle', gain: 0.06 })
+}
+
 export function playStart() {
   tone({ freq: 330, to: 660, dur: 0.14, type: 'square', gain: 0.05 })
   tone({ freq: 495, to: 990, dur: 0.16, type: 'square', gain: 0.04, delay: 0.08 })

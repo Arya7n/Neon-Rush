@@ -2,7 +2,9 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { SEGMENT_COUNT, SEGMENT_LENGTH, TRACK_LEAD, TRACK_LENGTH } from '../game/constants.js'
+import { useGameStore } from '../game/gameStore.js'
 import { loopZ, mulberry32 } from '../game/math.js'
+import { getTheme } from '../game/themes.js'
 
 const DUMMY = new THREE.Object3D()
 const TINTS = ['#243044', '#2a2238', '#1c3040', '#332033', '#24343c']
@@ -92,7 +94,7 @@ function makeSign(text, color) {
   canvas.height = 96
   const ctx = canvas.getContext('2d')
   ctx.clearRect(0, 0, 256, 96)
-  ctx.fillStyle = color
+  ctx.fillStyle = '#ffffff'
   ctx.font = '700 64px Bahnschrift, Segoe UI, sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -102,16 +104,16 @@ function makeSign(text, color) {
   return texture
 }
 
-function makeSky() {
+function makeSky(theme) {
   const canvas = document.createElement('canvas')
   canvas.width = 16
   canvas.height = 256
   const ctx = canvas.getContext('2d')
   const gradient = ctx.createLinearGradient(0, 0, 0, 256)
-  gradient.addColorStop(0, '#05060e')
-  gradient.addColorStop(0.45, '#10182e')
-  gradient.addColorStop(0.72, '#241433')
-  gradient.addColorStop(1, '#070814')
+  gradient.addColorStop(0, theme.sky[0])
+  gradient.addColorStop(0.45, theme.sky[1])
+  gradient.addColorStop(0.72, theme.sky[2])
+  gradient.addColorStop(1, theme.sky[3])
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, 16, 256)
   const texture = new THREE.CanvasTexture(canvas)
@@ -120,6 +122,7 @@ function makeSky() {
 }
 
 export function City({ worldRef }) {
+  const theme = getTheme(useGameStore((state) => state.theme))
   const buildings = useMemo(buildBuildings, [])
   const skyline = useMemo(buildSkyline, [])
   const lamps = useMemo(buildLamps, [])
@@ -141,7 +144,7 @@ export function City({ worldRef }) {
     return [...buildings.filter((building) => building.sign), ...boards]
   }, [buildings])
   const windows = useMemo(() => makeWindows(), [])
-  const sky = useMemo(() => makeSky(), [])
+  const sky = useMemo(() => makeSky(theme), [theme])
   const signTextures = useMemo(() => signs.map((sign) => makeSign(sign.signText, sign.signColor)), [signs])
   const bodies = useRef()
   const glass = useRef()
@@ -203,9 +206,12 @@ export function City({ worldRef }) {
     poles.current.instanceMatrix.needsUpdate = true
     bulbs.current.instanceMatrix.needsUpdate = true
 
+    const palette = getTheme(useGameStore.getState().theme)
+    if (bulbs.current?.material) bulbs.current.material.color.set(palette.primary)
     signs.forEach((sign, index) => {
       const mesh = signRefs.current[index]
       if (!mesh) return
+      mesh.material.color.set(index % 2 === 0 ? palette.primary : palette.secondary)
       const z = loopZ(sign.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
       const facing = -Math.sign(sign.x)
       const x = sign.roadside ? sign.x : sign.x + facing * (sign.depth / 2 + 0.12)

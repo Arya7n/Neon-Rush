@@ -18,6 +18,9 @@ export function GameHUD() {
   const distance = useGameStore((state) => state.distance)
   const orbs = useGameStore((state) => state.orbs)
   const speed = useGameStore((state) => state.speed)
+  const combo = useGameStore((state) => state.combo)
+  const shield = useGameStore((state) => state.shield)
+  const banner = useGameStore((state) => state.banner)
 
   if (phase !== 'PLAYING' && phase !== 'PAUSED') return null
 
@@ -32,12 +35,15 @@ export function GameHUD() {
       <div className="stat-row">
         <p className="stat"><span>Distance</span><b>{Math.floor(distance)}m</b></p>
         <p className="stat"><span>Energy</span><b>{orbs}</b></p>
+        <p className="stat"><span>Combo</span><b>{combo > 1 ? `x${combo}` : '—'}</b></p>
+        <p className="stat"><span>Shield</span><b>{shield ? 'Ready' : '—'}</b></p>
         <p className="stat stat-speed">
           <span>Speed</span>
           <b>{displaySpeed(speed)}</b>
           <span className="meter"><i style={{ width: `${filled}%` }} /></span>
         </p>
       </div>
+      {banner && <p className="banner">{banner}</p>}
     </div>
   )
 }

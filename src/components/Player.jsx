@@ -1,9 +1,10 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { LANE_X } from '../game/constants.js'
-import { worldRef } from '../game/gameStore.js'
+import { useGameStore, worldRef } from '../game/gameStore.js'
+import { getTheme } from '../game/themes.js'
 
 export function Player() {
   const root = useRef()
@@ -17,6 +18,8 @@ export function Player() {
   const armR = useRef()
   const shadow = useRef()
   const lamp = useRef()
+  const lane = useRef()
+  const themeId = useGameStore((state) => state.theme)
 
   const mats = useMemo(
     () => ({
@@ -37,6 +40,15 @@ export function Player() {
     }),
     [],
   )
+
+  useEffect(() => {
+    const theme = getTheme(themeId)
+    mats.trim.color.set(theme.primary)
+    mats.trim.emissive.set(theme.primary)
+    mats.mag.color.set(theme.secondary)
+    mats.mag.emissive.set(theme.secondary)
+    lane.current?.material.color.set(theme.primary)
+  }, [mats, themeId])
 
   useFrame(() => {
     const world = worldRef.current
@@ -68,7 +80,7 @@ export function Player() {
 
   return (
     <group ref={root}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -3.2]}>
+      <mesh ref={lane} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -3.2]}>
         <planeGeometry args={[1.7, 7]} />
         <meshBasicMaterial color="#3df0ff" transparent opacity={0.12} depthWrite={false} />
       </mesh>
