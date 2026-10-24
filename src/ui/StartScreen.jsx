@@ -27,13 +27,13 @@ export function StartScreen() {
   return (
     <div className="overlay overlay-start">
       <section className="panel panel-start">
-        <p className="eyebrow">Cyberpunk endless runner</p>
+        <p className="eyebrow">Endless runner</p>
         <h1 className="title">
           NEON
           <span> RUSH</span>
         </h1>
         <p className="tagline">Three lanes. No brakes. Chain energy, skim the traffic, hold a shield.</p>
-        <div className="themes" role="listbox" aria-label="City theme">
+        <div className="themes" role="listbox" aria-label="Place">
           {THEMES.map((theme) => (
             <button
               key={theme.id}

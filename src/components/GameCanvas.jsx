@@ -8,7 +8,7 @@ import { consumeInput } from '../game/inputBuffer.js'
 import { statsFromWorld } from '../game/score.js'
 import { getTheme } from '../game/themes.js'
 import { updateMenu, updateWorld } from '../game/world.js'
-import { City } from './City.jsx'
+import { Scenery } from './Scenery.jsx'
 import { Collectibles } from './Collectibles.jsx'
 import { Effects } from './Effects.jsx'
 import { Obstacles } from './Obstacles.jsx'
@@ -65,19 +65,17 @@ function CameraRig() {
     const shake = world.shake
     target.set(
       player.x * 0.55 + (Math.random() - 0.5) * shake * 0.22,
-      2.15 + player.y * 0.2 + (Math.random() - 0.5) * shake * 0.1,
-      4.35 - boost * 0.25,
+      2.45 + player.y * 0.16 + (Math.random() - 0.5) * shake * 0.1,
+      5.15 - boost * 0.3,
     )
     const camera = state.camera
     camera.position.lerp(target, 1 - Math.exp(-4.2 * dt))
-    look.set(player.x * 0.65, 1.05 + player.y * 0.12, -7)
+    look.set(player.x * 0.72, 0.92 + player.y * 0.1, -8.5)
     camera.lookAt(look)
-    camera.rotateZ(player.x * -0.02)
-    const fov = 58 + boost * 6
-    if (Math.abs(camera.fov - fov) > 0.08) {
-      camera.fov = fov
-      camera.updateProjectionMatrix()
-    }
+    camera.rotateZ(player.x * -0.015)
+    const fov = 50 + boost * 4
+    camera.fov += (fov - camera.fov) * (1 - Math.exp(-2.5 * dt))
+    camera.updateProjectionMatrix()
     world.shake = Math.max(0, world.shake - dt * 1.6)
   })
   return null
@@ -91,7 +89,7 @@ export function GameCanvas() {
     <Canvas
       className="game-canvas"
       dpr={quality === 'high' ? [1, 1.6] : [1, 1.1]}
-      camera={{ position: [0, 2.15, 4.35], fov: 58, near: 0.1, far: 280 }}
+      camera={{ position: [0, 2.45, 5.15], fov: 50, near: 0.1, far: 280 }}
       gl={{
         antialias: quality === 'high',
         alpha: false,
@@ -105,16 +103,20 @@ export function GameCanvas() {
       }}
     >
       <color attach="background" args={[theme.fog]} />
-      <fog attach="fog" args={[theme.fog, 30, 165]} />
+      <fog attach="fog" args={[theme.fog, theme.fogNear, theme.fogFar]} />
       <AdaptiveDpr pixelated />
       <Simulator />
       <CameraRig />
-      <ambientLight intensity={0.42} />
-      <hemisphereLight args={['#31486f', '#241018', 0.7]} />
-      <directionalLight position={[5, 12, 6]} intensity={0.85} color="#d5e9ff" />
-      <pointLight position={[-2.2, 2.4, 2.2]} color={theme.primary} intensity={7} distance={16} decay={2} />
-      <pointLight position={[2.4, 1.8, 1]} color={theme.secondary} intensity={5} distance={14} decay={2} />
-      <City worldRef={worldRef} />
+      <ambientLight intensity={theme.ambient} />
+      <hemisphereLight args={[theme.hemiSky, theme.hemiGround, 0.75]} />
+      <directionalLight position={theme.sunPos} intensity={theme.sunIntensity} color={theme.sun} />
+      {theme.place === 'city' && (
+        <>
+          <pointLight position={[-2.2, 2.4, 2.2]} color={theme.primary} intensity={3.2} distance={14} decay={2} />
+          <pointLight position={[2.4, 1.8, 1]} color={theme.secondary} intensity={2.2} distance={12} decay={2} />
+        </>
+      )}
+      <Scenery worldRef={worldRef} />
       <Road />
       <Obstacles worldRef={worldRef} />
       <Collectibles worldRef={worldRef} />

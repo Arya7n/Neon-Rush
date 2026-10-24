@@ -17,136 +17,137 @@ export function Player() {
   const armL = useRef()
   const armR = useRef()
   const shadow = useRef()
-  const lamp = useRef()
-  const lane = useRef()
+  const pose = useRef({ y: 0.52, lean: -0.2 })
   const themeId = useGameStore((state) => state.theme)
 
   const mats = useMemo(
     () => ({
-      suit: new THREE.MeshStandardMaterial({ color: '#141824', metalness: 0.62, roughness: 0.38 }),
-      dark: new THREE.MeshStandardMaterial({ color: '#0c1018', metalness: 0.5, roughness: 0.45 }),
-      trim: new THREE.MeshStandardMaterial({
+      skin: new THREE.MeshStandardMaterial({ color: '#f0c4a0', roughness: 0.72, metalness: 0.02 }),
+      hair: new THREE.MeshStandardMaterial({ color: '#3a2418', roughness: 0.8, metalness: 0.04 }),
+      cloth: new THREE.MeshStandardMaterial({ color: '#f04b3a', roughness: 0.78, metalness: 0.02 }),
+      jeans: new THREE.MeshStandardMaterial({ color: '#2c4c86', roughness: 0.84, metalness: 0.02 }),
+      shoe: new THREE.MeshStandardMaterial({ color: '#f7f7f4', roughness: 0.55, metalness: 0.08 }),
+      sole: new THREE.MeshStandardMaterial({ color: '#24262c', roughness: 0.7, metalness: 0.05 }),
+      accent: new THREE.MeshStandardMaterial({
         color: '#3df0ff',
         emissive: '#3df0ff',
-        emissiveIntensity: 1.7,
-        toneMapped: false,
+        emissiveIntensity: 0.35,
+        roughness: 0.4,
+        metalness: 0.05,
       }),
-      mag: new THREE.MeshStandardMaterial({
-        color: '#ff2bd6',
-        emissive: '#ff2bd6',
-        emissiveIntensity: 1.35,
-        toneMapped: false,
-      }),
+      pack: new THREE.MeshStandardMaterial({ color: '#1d2430', roughness: 0.7, metalness: 0.12 }),
     }),
     [],
   )
 
   useEffect(() => {
     const theme = getTheme(themeId)
-    mats.trim.color.set(theme.primary)
-    mats.trim.emissive.set(theme.primary)
-    mats.mag.color.set(theme.secondary)
-    mats.mag.emissive.set(theme.secondary)
-    lane.current?.material.color.set(theme.primary)
+    mats.cloth.color.set(theme.secondary)
+    mats.accent.color.set(theme.primary)
+    mats.accent.emissive.set(theme.primary)
   }, [mats, themeId])
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const world = worldRef.current
     const player = world.player
     const running = player.y <= 0.04 && !player.sliding
-    const cycle = world.distance * 0.62
-    const bob = running ? Math.abs(Math.sin(cycle)) * 0.045 : 0
-    root.current.position.x = player.x
-    visual.current.position.y = player.y + bob
-    visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.16
-    // Negative X pitch leans the chest toward -Z, the direction of travel.
-    body.current.rotation.x = player.sliding ? -1.05 : running ? -0.32 : -0.16
-    body.current.position.y = player.sliding ? 0.28 : 0.56
-    const squash = player.land || 0
-    body.current.scale.set(1 + squash * 0.08, 1 - squash * 0.16, 1)
+    const step = dt > 0 ? Math.min(dt, 0.05) : 0.016
+    const blend = 1 - Math.exp(-10 * step)
+    const cycle = world.distance * 0.64
     const stride = running ? Math.sin(cycle) : 0
-    // Positive thigh rotation reaches down the road. The knee folds on the trailing leg.
-    legL.current.rotation.x = stride * 0.9
-    legR.current.rotation.x = stride * -0.9
-    kneeL.current.rotation.x = (stride < 0 ? stride : stride * 0.12) * 1.25
-    kneeR.current.rotation.x = (stride > 0 ? -stride : stride * -0.12) * 1.25
-    armL.current.rotation.x = stride * -0.7
-    armR.current.rotation.x = stride * 0.7
-    shadow.current.position.y = 0.035
-    const lift = 1 - Math.min(0.55, player.y * 0.22)
-    shadow.current.scale.set(lift, lift, 1)
-    lamp.current.material.emissiveIntensity = 1.4 + Math.sin(world.elapsed * 8) * 0.25
+    const flight = running ? (1 - Math.cos(cycle * 2)) * 0.5 : 0
+    const tuck = (amount) => Math.pow(Math.max(amount, 0), 1.65)
+    const current = pose.current
+    const aimY = player.sliding ? 0.34 : 0.52
+    const aimLean = player.sliding ? -1.02 : running ? -0.24 : -0.1
+    current.y += (aimY - current.y) * blend
+    current.lean += (aimLean - current.lean) * blend
+
+    root.current.position.x = player.x
+    visual.current.position.y = player.y + flight * 0.03
+    visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.1
+    body.current.rotation.x = current.lean
+    body.current.position.y = current.y
+    const squash = player.land || 0
+    body.current.scale.set(1 + squash * 0.04, 1 - squash * 0.08, 1)
+    legL.current.rotation.x = stride * 0.92
+    legR.current.rotation.x = stride * -0.92
+    kneeL.current.rotation.x = -tuck(-stride) * 1.45
+    kneeR.current.rotation.x = -tuck(stride) * 1.45
+    armL.current.rotation.x = -0.5 - stride * 0.72
+    armR.current.rotation.x = -0.5 + stride * 0.72
+    shadow.current.position.y = 0.025
+    const lift = (1 - Math.min(0.45, player.y * 0.18)) * (1 - flight * 0.18)
+    shadow.current.scale.set(lift, lift * 0.72, 1)
   })
 
   return (
     <group ref={root}>
-      <mesh ref={lane} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -3.2]}>
-        <planeGeometry args={[1.7, 7]} />
-        <meshBasicMaterial color="#3df0ff" transparent opacity={0.12} depthWrite={false} />
-      </mesh>
-      <mesh ref={shadow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
-        <circleGeometry args={[0.46, 20]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.4} depthWrite={false} />
+      <mesh ref={shadow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0.1]}>
+        <circleGeometry args={[0.42, 24]} />
+        <meshBasicMaterial color="#1a140e" transparent opacity={0.32} depthWrite={false} />
       </mesh>
       <group ref={visual}>
         <group ref={body}>
-          <RoundedBox args={[0.5, 0.58, 0.3]} radius={0.08} smoothness={2} position={[0, 0.28, 0]} material={mats.suit} />
-          <RoundedBox args={[0.56, 0.16, 0.32]} radius={0.05} smoothness={2} position={[0, 0.48, 0]} material={mats.dark} />
-          <mesh position={[0, 0.3, 0.18]} material={mats.mag}>
-            <boxGeometry args={[0.06, 0.4, 0.04]} />
+          <RoundedBox args={[0.48, 0.5, 0.26]} radius={0.1} smoothness={3} position={[0, 0.46, 0]} material={mats.cloth} />
+          <RoundedBox args={[0.5, 0.12, 0.28]} radius={0.04} smoothness={2} position={[0, 0.66, 0]} material={mats.cloth} />
+          <RoundedBox args={[0.34, 0.4, 0.12]} radius={0.04} smoothness={2} position={[0, 0.42, 0.16]} material={mats.pack} />
+          <mesh position={[0, 0.42, 0.23]} material={mats.accent}>
+            <boxGeometry args={[0.08, 0.22, 0.02]} />
           </mesh>
-          <mesh position={[-0.12, 0.36, 0.2]} material={mats.dark}>
-            <boxGeometry args={[0.1, 0.18, 0.12]} />
+          <mesh position={[0, 0.86, -0.02]} material={mats.skin}>
+            <sphereGeometry args={[0.18, 20, 16]} />
           </mesh>
-          <mesh position={[0.12, 0.36, 0.2]} material={mats.dark}>
-            <boxGeometry args={[0.1, 0.18, 0.12]} />
+          <mesh position={[0, 0.96, 0.02]} scale={[1.05, 0.72, 1.05]} material={mats.hair}>
+            <sphereGeometry args={[0.18, 18, 14]} />
           </mesh>
-          <mesh ref={lamp} position={[-0.12, 0.32, 0.32]} rotation={[-Math.PI / 2, 0, 0]} material={mats.trim}>
-            <coneGeometry args={[0.045, 0.2, 6]} />
+          <mesh position={[0, 0.9, 0.08]} scale={[0.95, 0.7, 0.7]} material={mats.hair}>
+            <sphereGeometry args={[0.16, 16, 12]} />
           </mesh>
-          <mesh position={[0.12, 0.32, 0.32]} rotation={[-Math.PI / 2, 0, 0]} material={mats.mag}>
-            <coneGeometry args={[0.045, 0.2, 6]} />
+          <mesh position={[-0.16, 0.84, 0]} material={mats.skin}>
+            <sphereGeometry args={[0.045, 10, 8]} />
           </mesh>
-          <mesh position={[0, 0.66, 0]} material={mats.dark}>
-            <sphereGeometry args={[0.2, 18, 14]} />
+          <mesh position={[0.16, 0.84, 0]} material={mats.skin}>
+            <sphereGeometry args={[0.045, 10, 8]} />
           </mesh>
-          <mesh position={[0, 0.64, -0.16]} material={mats.trim}>
-            <boxGeometry args={[0.26, 0.09, 0.06]} />
-          </mesh>
-          <group ref={armL} position={[-0.34, 0.4, -0.02]}>
-            <mesh position={[0, -0.18, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.055, 0.22, 4, 8]} />
+          <group ref={armL} position={[-0.3, 0.62, 0]}>
+            <mesh position={[0, -0.16, 0]} material={mats.cloth}>
+              <capsuleGeometry args={[0.055, 0.18, 4, 8]} />
+            </mesh>
+            <mesh position={[0, -0.32, -0.02]} material={mats.skin}>
+              <sphereGeometry args={[0.055, 10, 8]} />
             </mesh>
           </group>
-          <group ref={armR} position={[0.34, 0.4, -0.02]}>
-            <mesh position={[0, -0.18, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.055, 0.22, 4, 8]} />
+          <group ref={armR} position={[0.3, 0.62, 0]}>
+            <mesh position={[0, -0.16, 0]} material={mats.cloth}>
+              <capsuleGeometry args={[0.055, 0.18, 4, 8]} />
+            </mesh>
+            <mesh position={[0, -0.32, -0.02]} material={mats.skin}>
+              <sphereGeometry args={[0.055, 10, 8]} />
             </mesh>
           </group>
-          <group ref={legL} position={[-0.13, 0.02, 0]}>
-            <mesh position={[0, -0.16, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.065, 0.16, 4, 8]} />
+          <group ref={legL} position={[-0.12, 0.18, 0]}>
+            <mesh position={[0, -0.16, 0]} material={mats.jeans}>
+              <capsuleGeometry args={[0.07, 0.16, 4, 8]} />
             </mesh>
-            <group ref={kneeL} position={[0, -0.3, 0]}>
-              <mesh position={[0, -0.13, 0]} material={mats.dark}>
-                <capsuleGeometry args={[0.05, 0.14, 4, 8]} />
+            <group ref={kneeL} position={[0, -0.32, 0]}>
+              <mesh position={[0, -0.14, 0]} material={mats.jeans}>
+                <capsuleGeometry args={[0.055, 0.14, 4, 8]} />
               </mesh>
-              <mesh position={[0, -0.26, -0.08]} material={mats.trim}>
-                <boxGeometry args={[0.14, 0.06, 0.3]} />
-              </mesh>
+              <RoundedBox args={[0.14, 0.08, 0.26]} radius={0.03} smoothness={2} position={[0, -0.26, -0.05]} material={mats.shoe} />
+              <RoundedBox args={[0.15, 0.035, 0.28]} radius={0.015} smoothness={2} position={[0, -0.3, -0.04]} material={mats.sole} />
             </group>
           </group>
-          <group ref={legR} position={[0.13, 0.02, 0]}>
-            <mesh position={[0, -0.16, 0]} material={mats.suit}>
-              <capsuleGeometry args={[0.065, 0.16, 4, 8]} />
+          <group ref={legR} position={[0.12, 0.18, 0]}>
+            <mesh position={[0, -0.16, 0]} material={mats.jeans}>
+              <capsuleGeometry args={[0.07, 0.16, 4, 8]} />
             </mesh>
-            <group ref={kneeR} position={[0, -0.3, 0]}>
-              <mesh position={[0, -0.13, 0]} material={mats.dark}>
-                <capsuleGeometry args={[0.05, 0.14, 4, 8]} />
+            <group ref={kneeR} position={[0, -0.32, 0]}>
+              <mesh position={[0, -0.14, 0]} material={mats.jeans}>
+                <capsuleGeometry args={[0.055, 0.14, 4, 8]} />
               </mesh>
-              <mesh position={[0, -0.26, -0.08]} material={mats.trim}>
-                <boxGeometry args={[0.14, 0.06, 0.3]} />
-              </mesh>
+              <RoundedBox args={[0.14, 0.08, 0.26]} radius={0.03} smoothness={2} position={[0, -0.26, -0.05]} material={mats.shoe} />
+              <RoundedBox args={[0.15, 0.035, 0.28]} radius={0.015} smoothness={2} position={[0, -0.3, -0.04]} material={mats.sole} />
             </group>
           </group>
         </group>

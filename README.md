@@ -13,7 +13,7 @@ The city scrolls toward you. Change lanes, jump the low barriers, and slide unde
 | Slide | S or Down | Swipe down |
 | Pause | Esc | — |
 
-Themes: Neon, Toxic, Ember, and Void. The choice is saved with your best score.
+Places: Neon City, Jungle, Dunes, and Shore. The choice is saved with your best score.
 
 ## Run locally
 

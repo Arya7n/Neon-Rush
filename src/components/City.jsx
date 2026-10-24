@@ -104,25 +104,7 @@ function makeSign(text, color) {
   return texture
 }
 
-function makeSky(theme) {
-  const canvas = document.createElement('canvas')
-  canvas.width = 16
-  canvas.height = 256
-  const ctx = canvas.getContext('2d')
-  const gradient = ctx.createLinearGradient(0, 0, 0, 256)
-  gradient.addColorStop(0, theme.sky[0])
-  gradient.addColorStop(0.45, theme.sky[1])
-  gradient.addColorStop(0.72, theme.sky[2])
-  gradient.addColorStop(1, theme.sky[3])
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, 16, 256)
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  return texture
-}
-
 export function City({ worldRef }) {
-  const theme = getTheme(useGameStore((state) => state.theme))
   const buildings = useMemo(buildBuildings, [])
   const skyline = useMemo(buildSkyline, [])
   const lamps = useMemo(buildLamps, [])
@@ -144,7 +126,6 @@ export function City({ worldRef }) {
     return [...buildings.filter((building) => building.sign), ...boards]
   }, [buildings])
   const windows = useMemo(() => makeWindows(), [])
-  const sky = useMemo(() => makeSky(theme), [theme])
   const signTextures = useMemo(() => signs.map((sign) => makeSign(sign.signText, sign.signColor)), [signs])
   const bodies = useRef()
   const glass = useRef()
@@ -224,10 +205,6 @@ export function City({ worldRef }) {
 
   return (
     <group>
-      <mesh frustumCulled={false}>
-        <sphereGeometry args={[190, 24, 16]} />
-        <meshBasicMaterial map={sky} side={THREE.BackSide} fog={false} depthWrite={false} />
-      </mesh>
       <instancedMesh ref={far} args={[null, null, skyline.length]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="#090b12" roughness={1} metalness={0.05} />
