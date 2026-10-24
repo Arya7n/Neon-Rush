@@ -20,7 +20,16 @@ export function GameHUD() {
   const speed = useGameStore((state) => state.speed)
   const combo = useGameStore((state) => state.combo)
   const shield = useGameStore((state) => state.shield)
+  const smash = useGameStore((state) => state.smash)
+  const magnetTime = useGameStore((state) => state.magnetTime)
+  const boostTime = useGameStore((state) => state.boostTime)
   const banner = useGameStore((state) => state.banner)
+  const powers = [
+    smash ? 'Smash' : '',
+    boostTime > 0 ? `x2 ${Math.ceil(boostTime)}s` : '',
+    magnetTime > 0 ? `Magnet ${Math.ceil(magnetTime)}s` : '',
+    shield ? 'Shield' : '',
+  ].filter(Boolean)
 
   if (phase !== 'PLAYING' && phase !== 'PAUSED') return null
 
@@ -36,7 +45,7 @@ export function GameHUD() {
         <p className="stat"><span>Distance</span><b>{Math.floor(distance)}m</b></p>
         <p className="stat"><span>Energy</span><b>{orbs}</b></p>
         <p className="stat"><span>Combo</span><b>{combo > 1 ? `x${combo}` : '—'}</b></p>
-        <p className="stat"><span>Shield</span><b>{shield ? 'Ready' : '—'}</b></p>
+        <p className="stat"><span>Power</span><b>{powers.length ? powers.join(' · ') : '—'}</b></p>
         <p className="stat stat-speed">
           <span>Speed</span>
           <b>{displaySpeed(speed)}</b>

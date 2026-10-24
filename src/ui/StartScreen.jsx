@@ -32,7 +32,7 @@ export function StartScreen() {
           NEON
           <span> RUSH</span>
         </h1>
-        <p className="tagline">Three lanes. No brakes. Chain energy, skim the traffic, hold a shield.</p>
+        <p className="tagline">Three lanes. No brakes. Chain energy, then grab a magnet, a score boost, or a smash.</p>
         <div className="themes" role="listbox" aria-label="Place">
           {THEMES.map((theme) => (
             <button

@@ -86,6 +86,9 @@ export function planRow(rowDistance, prevOpen, rng = Math.random) {
       spawnAt: mid + (i - (count - 1) / 2) * 2.3,
     })
   }
-  if (orbs.length && rng() < 0.16) orbs[0].kind = 'shield'
+  if (orbs.length && rng() < 0.18) {
+    const kinds = ['shield', 'magnet', 'boost', 'smash']
+    orbs[0].kind = kinds[Math.floor(rng() * kinds.length)]
+  }
   return { obstacles: pattern, orbs, open, gap }
 }

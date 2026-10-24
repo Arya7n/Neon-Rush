@@ -110,11 +110,13 @@ test('combo, near misses, and shields change the score without ending a shielded
   orb.active = true
   orb.kind = 'energy'
   orb.lane = 1
+  orb.x = 0
   orb.spawnAt = combo.distance
   updateWorld(combo, 0.001, { laneDelta: 0, jump: false, slide: false })
   assert.equal(combo.orbsCollected, 1)
   assert.equal(combo.combo, 1)
   orb.active = true
+  orb.x = 0
   orb.spawnAt = combo.distance
   updateWorld(combo, 0.001, { laneDelta: 0, jump: false, slide: false })
   assert.equal(combo.combo, 2)
@@ -142,6 +144,51 @@ test('combo, near misses, and shields change the score without ending a shielded
   assert.equal(blocked.shielded, true)
   assert.equal(guarded.player.alive, true)
   assert.equal(guarded.shield, 0)
+})
+
+test('magnet, score boost, and smash change a run', () => {
+  const pulled = createWorld({ rng: mulberry32(7) })
+  isolate(pulled)
+  pulled.magnetTime = 1.5
+  const orb = pulled.collectibles[0]
+  orb.active = true
+  orb.kind = 'energy'
+  orb.lane = 0
+  orb.x = -2.55
+  orb.spawnAt = pulled.distance + 6
+  orb.z = -6
+  updateWorld(pulled, 0.8, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(pulled.orbsCollected, 1)
+
+  const doubled = createWorld({ rng: mulberry32(8) })
+  isolate(doubled)
+  doubled.boostTime = 8
+  const energy = doubled.collectibles[0]
+  energy.active = true
+  energy.kind = 'energy'
+  energy.lane = 1
+  energy.x = 0
+  energy.spawnAt = doubled.distance
+  updateWorld(doubled, 0.001, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(doubled.orbsCollected, 1)
+  assert.ok(doubled.bonus >= 50)
+
+  const ram = createWorld({ rng: mulberry32(9) })
+  isolate(ram)
+  place(ram, 'block', 1)
+  ram.obstacles[1].active = true
+  ram.obstacles[1].type = 'block'
+  ram.obstacles[1].lane = 0
+  ram.obstacles[1].spawnAt = ram.obstacles[0].spawnAt
+  ram.obstacles[1].resolved = false
+  ram.smash = 1
+  const smashed = updateWorld(ram, 0.001, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(smashed.crashed, false)
+  assert.equal(smashed.smashed, true)
+  assert.equal(ram.player.alive, true)
+  assert.equal(ram.smash, 0)
+  assert.equal(ram.obstacles[0].active, false)
+  assert.equal(ram.obstacles[1].active, false)
 })
 
 test('speed is capped and an autopilot survives a minute of traffic', () => {

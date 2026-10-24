@@ -101,6 +101,16 @@ export function playShield() {
   tone({ freq: 180, to: 420, dur: 0.18, type: 'triangle', gain: 0.06 })
 }
 
+export function playPower() {
+  tone({ freq: 440, to: 880, dur: 0.1, type: 'square', gain: 0.05 })
+  tone({ freq: 660, to: 1320, dur: 0.12, type: 'triangle', gain: 0.04, delay: 0.06 })
+}
+
+export function playSmash() {
+  tone({ freq: 140, to: 60, dur: 0.16, type: 'sawtooth', gain: 0.07 })
+  tone({ freq: 320, to: 180, dur: 0.1, type: 'square', gain: 0.04 })
+}
+
 export function playStart() {
   tone({ freq: 330, to: 660, dur: 0.14, type: 'square', gain: 0.05 })
   tone({ freq: 495, to: 990, dur: 0.16, type: 'square', gain: 0.04, delay: 0.08 })

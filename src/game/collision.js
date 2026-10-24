@@ -37,7 +37,10 @@ export function overlapsPlayer(player, obstacle) {
 }
 
 export function overlapsOrb(player, orb) {
-  return overlapsXZ(player, orb.lane, ORB_HIT_X, ORB_HIT_Z, orb.z)
+  const x = orb.x ?? laneCenter(orb.lane)
+  if (Math.abs(player.x - x) > ORB_HIT_X) return false
+  if (Math.abs(orb.z) > ORB_HIT_Z) return false
+  return true
 }
 
 /** Close enough to feel the pass, far enough that the hit boxes do not overlap. */

@@ -17,6 +17,7 @@ export function Player() {
   const armL = useRef()
   const armR = useRef()
   const shadow = useRef()
+  const aura = useRef()
   const pose = useRef({ y: 0.52, lean: -0.2 })
   const themeId = useGameStore((state) => state.theme)
 
@@ -79,10 +80,23 @@ export function Player() {
     shadow.current.position.y = 0.025
     const lift = (1 - Math.min(0.45, player.y * 0.18)) * (1 - flight * 0.18)
     shadow.current.scale.set(lift, lift * 0.72, 1)
+    if (aura.current) {
+      const power = world.smash > 0 ? '#ff5a3c' : world.boostTime > 0 ? '#5dffe0' : world.magnetTime > 0 ? '#7aa2ff' : ''
+      aura.current.visible = power !== ''
+      if (power) {
+        aura.current.material.color.set(power)
+        const pulse = 1 + Math.sin(world.elapsed * 8) * 0.08
+        aura.current.scale.set(pulse, pulse, pulse)
+      }
+    }
   })
 
   return (
     <group ref={root}>
+      <mesh ref={aura} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]} visible={false}>
+        <ringGeometry args={[0.5, 0.68, 28]} />
+        <meshBasicMaterial color="#7aa2ff" transparent opacity={0.8} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
       <mesh ref={shadow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0.1]}>
         <circleGeometry args={[0.42, 24]} />
         <meshBasicMaterial color="#1a140e" transparent opacity={0.32} depthWrite={false} />

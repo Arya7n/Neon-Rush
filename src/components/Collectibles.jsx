@@ -31,34 +31,50 @@ export function Collectibles({ worldRef }) {
   const ring = useRef()
   const shield = useRef()
   const shieldRing = useRef()
+  const magnet = useRef()
+  const boost = useRef()
+  const smash = useRef()
 
   useLayoutEffect(() => {
-    ;[core, glow, ring, shield, shieldRing].forEach((ref) => {
+    ;[core, glow, ring, shield, shieldRing, magnet, boost, smash].forEach((ref) => {
       if (ref.current) ref.current.frustumCulled = false
     })
   }, [])
 
   useFrame(() => {
-    if (!core.current || !shield.current) return
+    if (!core.current || !shield.current || !magnet.current || !boost.current || !smash.current) return
     const visible = useGameStore.getState().phase !== 'MENU'
     const world = worldRef.current
     const list = world.collectibles
     let energy = 0
     let shields = 0
+    let magnets = 0
+    let boosts = 0
+    let smashes = 0
     if (visible) {
       for (let i = 0; i < ORB_POOL; i += 1) {
         const orb = list[i]
         if (!orb.active) continue
+        const x = orb.x ?? LANE_X[orb.lane]
         const bob = 1 + Math.sin(world.elapsed * 4 + i) * 0.12
         const spin = world.elapsed * 2.2 + i
         if (orb.kind === 'shield' && shields < MAX) {
-          place(shield.current, shields, LANE_X[orb.lane], bob + 0.15, orb.z, 1.15, spin)
-          placeRing(shieldRing.current, shields, LANE_X[orb.lane], orb.z)
+          place(shield.current, shields, x, bob + 0.15, orb.z, 1.15, spin)
+          placeRing(shieldRing.current, shields, x, orb.z)
           shields += 1
+        } else if (orb.kind === 'magnet' && magnets < MAX) {
+          place(magnet.current, magnets, x, bob + 0.2, orb.z, 1.1, spin)
+          magnets += 1
+        } else if (orb.kind === 'boost' && boosts < MAX) {
+          place(boost.current, boosts, x, bob + 0.15, orb.z, 1.05, spin)
+          boosts += 1
+        } else if (orb.kind === 'smash' && smashes < MAX) {
+          place(smash.current, smashes, x, bob + 0.15, orb.z, 1.05, spin)
+          smashes += 1
         } else if (energy < MAX) {
-          place(core.current, energy, LANE_X[orb.lane], bob, orb.z, 1, spin)
-          place(glow.current, energy, LANE_X[orb.lane], bob, orb.z, 1.15 + Math.sin(world.elapsed * 4 + i) * 0.08, spin)
-          placeRing(ring.current, energy, LANE_X[orb.lane], orb.z)
+          place(core.current, energy, x, bob, orb.z, 1, spin)
+          place(glow.current, energy, x, bob, orb.z, 1.15 + Math.sin(world.elapsed * 4 + i) * 0.08, spin)
+          placeRing(ring.current, energy, x, orb.z)
           energy += 1
         }
       }
@@ -68,11 +84,12 @@ export function Collectibles({ worldRef }) {
     ring.current.count = energy
     shield.current.count = shields
     shieldRing.current.count = shields
-    core.current.instanceMatrix.needsUpdate = true
-    glow.current.instanceMatrix.needsUpdate = true
-    ring.current.instanceMatrix.needsUpdate = true
-    shield.current.instanceMatrix.needsUpdate = true
-    shieldRing.current.instanceMatrix.needsUpdate = true
+    magnet.current.count = magnets
+    boost.current.count = boosts
+    smash.current.count = smashes
+    for (const mesh of [core, glow, ring, shield, shieldRing, magnet, boost, smash]) {
+      mesh.current.instanceMatrix.needsUpdate = true
+    }
   })
 
   return (
@@ -96,6 +113,18 @@ export function Collectibles({ worldRef }) {
       <instancedMesh ref={shieldRing} args={[null, null, MAX]}>
         <ringGeometry args={[0.34, 0.52, 6]} />
         <meshBasicMaterial color="#ffe38a" transparent opacity={0.85} depthWrite={false} side={THREE.DoubleSide} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={magnet} args={[null, null, MAX]}>
+        <torusGeometry args={[0.28, 0.08, 8, 16]} />
+        <meshStandardMaterial color="#d7e6ff" emissive="#7aa2ff" emissiveIntensity={2} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={boost} args={[null, null, MAX]}>
+        <icosahedronGeometry args={[0.28, 0]} />
+        <meshStandardMaterial color="#e8fff6" emissive="#5dffe0" emissiveIntensity={2} toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh ref={smash} args={[null, null, MAX]}>
+        <dodecahedronGeometry args={[0.3, 0]} />
+        <meshStandardMaterial color="#ffd0c4" emissive="#ff5a3c" emissiveIntensity={2} toneMapped={false} />
       </instancedMesh>
     </group>
   )

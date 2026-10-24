@@ -25,7 +25,7 @@ function obstacleSlot() {
 }
 
 function orbSlot() {
-  return { active: false, lane: 1, spawnAt: 0, z: 40, kind: 'energy' }
+  return { active: false, lane: 1, spawnAt: 0, z: 40, kind: 'energy', x: LANE_X[1] }
 }
 
 export function createWorld({ spawn = true, rng = Math.random } = {}) {
@@ -40,6 +40,9 @@ export function createWorld({ spawn = true, rng = Math.random } = {}) {
     comboTimer: 0,
     maxCombo: 0,
     shield: 0,
+    smash: 0,
+    magnetTime: 0,
+    boostTime: 0,
     nearMisses: 0,
     banner: '',
     bannerTime: 0,
@@ -94,6 +97,7 @@ function spawnRow(world) {
     slot.active = true
     slot.kind = orb.kind || 'energy'
     slot.lane = orb.lane
+    slot.x = LANE_X[orb.lane] ?? 0
     slot.spawnAt = orb.spawnAt
     slot.z = world.distance - orb.spawnAt
   }
@@ -117,7 +121,7 @@ function flash(world, text) {
 
 function step(world, dt, input) {
   const player = world.player
-  if (!player.alive) return { collected: 0, crashed: false, shielded: false, nearMisses: 0, powered: 0 }
+  if (!player.alive) return { collected: 0, crashed: false, shielded: false, smashed: false, nearMisses: 0, powered: 0 }
 
   if (input.laneDelta) {
     player.lane = clamp(player.lane + input.laneDelta, 0, 2)
@@ -164,6 +168,8 @@ function step(world, dt, input) {
   world.elapsed += dt
   world.bannerTime = Math.max(0, world.bannerTime - dt)
   world.comboTimer = Math.max(0, world.comboTimer - dt)
+  world.magnetTime = Math.max(0, world.magnetTime - dt)
+  world.boostTime = Math.max(0, world.boostTime - dt)
   if (world.comboTimer === 0) world.combo = 0
 
   recycle(world.obstacles, world.distance)
@@ -175,9 +181,25 @@ function step(world, dt, input) {
     guard += 1
   }
 
+  const mul = world.boostTime > 0 ? 2 : 1
+  if (mul > 1) world.bonus += world.speed * dt * 2
+
+  if (world.magnetTime > 0) {
+    const pull = 1 - Math.exp(-8 * dt)
+    for (const orb of world.collectibles) {
+      if (!orb.active || orb.kind !== 'energy' || orb.z < -24 || orb.z > 3) continue
+      if (orb.x == null) orb.x = LANE_X[orb.lane] ?? 0
+      orb.x += (player.x - orb.x) * pull
+      const nextZ = orb.z * (1 - pull)
+      orb.spawnAt = world.distance - nextZ
+      orb.z = nextZ
+    }
+  }
+
   let collected = 0
   let powered = 0
   let shielded = false
+  let smashed = false
   for (const orb of world.collectibles) {
     if (!orb.active || !overlapsOrb(player, orb)) continue
     orb.active = false
@@ -187,10 +209,29 @@ function step(world, dt, input) {
       flash(world, 'SHIELD')
       continue
     }
+    if (orb.kind === 'magnet') {
+      world.magnetTime = 8
+      powered += 1
+      flash(world, 'MAGNET')
+      continue
+    }
+    if (orb.kind === 'boost') {
+      world.boostTime = 8
+      powered += 1
+      flash(world, 'x2 SCORE')
+      continue
+    }
+    if (orb.kind === 'smash') {
+      world.smash = 1
+      powered += 1
+      flash(world, 'SMASH')
+      continue
+    }
     world.combo = Math.min(8, world.combo + 1)
     world.maxCombo = Math.max(world.maxCombo, world.combo)
     world.comboTimer = 3.2
-    world.bonus += 20 * (world.combo - 1)
+    world.bonus += 20 * (world.combo - 1) * mul
+    if (mul > 1) world.bonus += 50
     world.orbsCollected += 1
     collected += 1
   }
@@ -202,7 +243,7 @@ function step(world, dt, input) {
     if (!isNearMiss(player, obstacle)) continue
     nearMisses += 1
     world.nearMisses += 1
-    world.bonus += 40
+    world.bonus += 40 * mul
     world.shake = Math.max(world.shake, 0.16)
     flash(world, 'NEAR MISS')
   }
@@ -211,6 +252,20 @@ function step(world, dt, input) {
     if (!obstacle.active || !overlapsPlayer(player, obstacle)) continue
     obstacle.active = false
     obstacle.resolved = true
+    if (world.smash > 0) {
+      const row = obstacle.spawnAt
+      for (const other of world.obstacles) {
+        if (!other.active || other.spawnAt !== row) continue
+        other.active = false
+        other.resolved = true
+      }
+      world.smash = 0
+      world.bonus += 80 * mul
+      world.shake = Math.max(world.shake, 0.4)
+      flash(world, 'SMASH')
+      smashed = true
+      continue
+    }
     if (world.shield > 0) {
       world.shield -= 1
       world.combo = 0
@@ -222,10 +277,10 @@ function step(world, dt, input) {
     }
     player.alive = false
     world.shake = 1
-    return { collected, crashed: true, shielded: false, nearMisses, powered }
+    return { collected, crashed: true, shielded: false, smashed, nearMisses, powered }
   }
 
-  return { collected, crashed: false, shielded, nearMisses, powered }
+  return { collected, crashed: false, shielded, smashed, nearMisses, powered }
 }
 
 export function updateWorld(world, dt, input) {
@@ -236,18 +291,20 @@ export function updateWorld(world, dt, input) {
   let powered = 0
   let crashed = false
   let shielded = false
+  let smashed = false
   for (let i = 0; i < steps; i += 1) {
     const result = step(world, slice, i === 0 ? input : { laneDelta: 0, jump: false, slide: false })
     collected += result.collected
     nearMisses += result.nearMisses
     powered += result.powered
     if (result.shielded) shielded = true
+    if (result.smashed) smashed = true
     if (result.crashed) {
       crashed = true
       break
     }
   }
-  return { collected, crashed, shielded, nearMisses, powered }
+  return { collected, crashed, shielded, smashed, nearMisses, powered }
 }
 
 export function updateMenu(world, dt) {

@@ -60,6 +60,9 @@ export const useGameStore = create((set, get) => ({
   combo: 0,
   maxCombo: 0,
   shield: 0,
+  smash: 0,
+  magnetTime: 0,
+  boostTime: 0,
   nearMisses: 0,
   banner: '',
 
@@ -107,6 +110,9 @@ export const useGameStore = create((set, get) => ({
       combo: 0,
       maxCombo: 0,
       shield: 0,
+      smash: 0,
+      magnetTime: 0,
+      boostTime: 0,
       nearMisses: 0,
       banner: '',
     })

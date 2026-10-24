@@ -13,6 +13,9 @@ export function statsFromWorld(world) {
     combo: world.combo || 0,
     maxCombo: world.maxCombo || 0,
     shield: world.shield || 0,
+    smash: world.smash || 0,
+    magnetTime: world.magnetTime || 0,
+    boostTime: world.boostTime || 0,
     nearMisses: world.nearMisses || 0,
     banner: world.bannerTime > 0 ? world.banner : '',
   }

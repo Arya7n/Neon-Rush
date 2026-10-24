@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { AdaptiveDpr } from '@react-three/drei'
 import * as THREE from 'three'
-import { playCollect, playCrash, playJump, playNear, playShield, playSlide } from '../game/audio.js'
+import { playCollect, playCrash, playJump, playNear, playPower, playShield, playSlide, playSmash } from '../game/audio.js'
 import { useGameStore, worldRef } from '../game/gameStore.js'
 import { consumeInput } from '../game/inputBuffer.js'
 import { statsFromWorld } from '../game/score.js'
@@ -40,7 +40,9 @@ function Simulator() {
     if (!beforeSlide && world.player.sliding) playSlide()
     if (result.collected) playCollect()
     if (result.nearMisses) playNear()
-    if (result.powered || result.shielded) playShield()
+    if (result.powered) playPower()
+    if (result.shielded) playShield()
+    if (result.smashed) playSmash()
     if (result.crashed) {
       playCrash()
       store.gameOver()
@@ -48,7 +50,7 @@ function Simulator() {
     }
 
     hudTimer.current += step
-    if (hudTimer.current >= 0.1 || result.collected) {
+    if (hudTimer.current >= 0.1 || result.collected || result.powered || result.smashed) {
       hudTimer.current = 0
       store.pushHud(statsFromWorld(world))
     }
