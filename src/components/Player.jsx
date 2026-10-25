@@ -7,6 +7,10 @@ import { useGameStore, worldRef } from '../game/gameStore.js'
 import { getTheme } from '../game/themes.js'
 
 const ROLL = Math.PI * 2
+const rollAxis = new THREE.Vector3(1, 0, -0.48).normalize()
+const rollQuat = new THREE.Quaternion()
+const leanQuat = new THREE.Quaternion()
+const leanAxis = new THREE.Vector3(0, 0, 1)
 
 function clamp01(value) {
   return Math.min(1, Math.max(0, value))
@@ -46,6 +50,7 @@ export function Player() {
   const aura = useRef()
   const pose = useRef({ y: 0.52, lean: -0.2 })
   const roll = useRef({ spin: 0, tuck: 0, live: false })
+  const impact = useRef(0)
   const themeId = useGameStore((state) => state.theme)
 
   const mats = useMemo(
@@ -83,31 +88,33 @@ export function Player() {
       roll.current.spin = 0
       roll.current.tuck = 0
       roll.current.live = false
-      visual.current.position.z = 0
-      body.current.position.z = 0
+      impact.current = 0
       const t = Math.min(1, fall)
-      const stumble = Math.sin((Math.min(t, 0.22) / 0.22) * Math.PI)
-      const drop = Math.min(1, Math.max(0, (t - 0.12) / 0.7))
-      const eased = drop * drop * (3 - 2 * drop)
+      const jolt = Math.sin(Math.min(1, t / 0.14) * Math.PI)
+      const tumble = smoothstep(clamp01((t - 0.06) / 0.48))
+      const settle = smoothstep(clamp01((t - 0.58) / 0.42))
+      const hop = Math.sin(clamp01(t / 0.3) * Math.PI) * (1 - settle)
+      const pivot = 0.5 * tumble
       root.current.position.x = player.x
-      visual.current.position.y = player.y + stumble * 0.28 * (1 - eased)
-      visual.current.rotation.x = -stumble * 0.35 + eased * 1.4
-      visual.current.rotation.z = eased * 1.05
-      body.current.rotation.x = -0.15 - stumble * 0.55 * (1 - eased)
-      body.current.position.y = 0.52 - eased * 0.28
-      body.current.scale.set(1, 1, 1)
-      legL.current.rotation.x = eased * 0.55
-      legR.current.rotation.x = -eased * 1.15
-      legL.current.rotation.z = eased * 0.25
-      legR.current.rotation.z = -eased * 0.15
-      kneeL.current.rotation.x = -eased * 1.7
-      kneeR.current.rotation.x = -eased * 0.45
-      armL.current.rotation.x = -0.4 + stumble * 1.1 * (1 - eased) + eased * 1.5
-      armR.current.rotation.x = -0.5 - eased * 0.2
-      armL.current.rotation.z = eased * 0.9
-      armR.current.rotation.z = -eased * 0.55
+      visual.current.position.y = player.y + hop * 0.7 + pivot
+      visual.current.position.z = -tumble * 0.42
+      visual.current.rotation.set(-tumble * 2.9, jolt * 0.35, Math.sin(tumble * Math.PI) * 1.15)
+      body.current.rotation.x = -0.2 - jolt * 1.05 - settle * 0.25
+      body.current.position.y = lerp(0.52, 0.04, tumble)
+      body.current.position.z = 0
+      body.current.scale.set(1 + settle * 0.08, 1 - settle * 0.14, 1)
+      legL.current.rotation.x = jolt * 1.7 + tumble * 0.35 + settle * 0.9
+      legR.current.rotation.x = -jolt * 1.15 - tumble * 1.25 + settle * 0.15
+      legL.current.rotation.z = settle * 0.45
+      legR.current.rotation.z = -jolt * 0.2 - settle * 0.2
+      kneeL.current.rotation.x = -jolt * 0.8 - tumble * 1.5 - settle * 0.7
+      kneeR.current.rotation.x = -jolt * 1.6 - settle * 0.45
+      armL.current.rotation.x = -0.4 + jolt * 2.9 + tumble * 0.2 - settle * 1.1
+      armR.current.rotation.x = -0.5 - jolt * 1.8 + tumble * 2.4 - settle * 0.4
+      armL.current.rotation.z = jolt * 0.9 + settle * 0.7
+      armR.current.rotation.z = -jolt * 1.1 - settle * 0.35
       shadow.current.position.y = 0.025
-      shadow.current.scale.set(1.15, 0.7, 1)
+      shadow.current.scale.set(1.2 + settle * 0.35, 0.7, 1)
       if (aura.current) aura.current.visible = false
       return
     }
@@ -145,35 +152,50 @@ export function Player() {
     }
     const tucked = motion.tuck
     const spin = motion.spin
-    const pivot = 0.58
+    const pivot = 0.4
+    const takeoff = clamp01(player.vy / 4.2) * (1 - clamp01(player.y / 0.85))
+    const hang = clamp01((player.y - 0.15) / 0.45) * (1 - clamp01(Math.abs(player.vy) / 6.5))
+    const descent = clamp01(-player.vy / 3.6) * clamp01(player.y / 0.08)
+    const airSum = takeoff + hang + descent
+    const air = clamp01(airSum) * (1 - tucked)
+    const wTake = airSum > 0 ? takeoff / airSum : 0
+    const wHang = airSum > 0 ? hang / airSum : 0
+    const wDrop = airSum > 0 ? descent / airSum : 0
+    if ((player.land || 0) > 0.75) impact.current = 1
+    impact.current = Math.max(0, impact.current - step * 2.6)
+    const hit = impact.current * (1 - air) * (1 - tucked)
+    const mix = (runVal, take, hung, drop, land, tuckVal) => {
+      const aerial = take * wTake + hung * wHang + drop * wDrop
+      return lerp(lerp(lerp(runVal, land, hit), aerial, air), tuckVal, tucked)
+    }
 
     root.current.position.x = player.x
-    visual.current.position.y = player.y + flight * 0.03 * (1 - tucked) + pivot * tucked
-    visual.current.position.z = 0
-    visual.current.rotation.x = -spin
-    visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.1 * (1 - tucked * 0.75) - Math.sin(spin) * 0.32 * tucked
-    body.current.rotation.x = lerp(current.lean, -1.28, tucked)
-    body.current.position.y = lerp(current.y, 0.02, tucked)
-    body.current.position.z = lerp(0, 0.16, tucked)
-    const squash = player.land || 0
-    body.current.scale.set(
-      lerp(1 + squash * 0.04, 1.1, tucked),
-      lerp(1 - squash * 0.08, 0.7, tucked),
-      lerp(1, 1.08, tucked),
-    )
-    legL.current.rotation.x = lerp(stride * 0.92, 1.35, tucked)
-    legR.current.rotation.x = lerp(stride * -0.92, 1.5, tucked)
-    legL.current.rotation.z = lerp(0, 0.18, tucked)
-    legR.current.rotation.z = lerp(0, -0.18, tucked)
-    kneeL.current.rotation.x = lerp(-bend(-stride) * 1.45, -2.15, tucked)
-    kneeR.current.rotation.x = lerp(-bend(stride) * 1.45, -2.15, tucked)
-    armL.current.rotation.x = lerp(-0.5 - stride * 0.72, 2.2, tucked)
-    armR.current.rotation.x = lerp(-0.5 + stride * 0.72, 2.05, tucked)
-    armL.current.rotation.z = lerp(0, 0.9, tucked)
-    armR.current.rotation.z = lerp(0, -0.9, tucked)
+    visual.current.position.y = player.y + flight * 0.03 * (1 - tucked) * (1 - air) + pivot * tucked - hit * 0.05
+    visual.current.position.z = -Math.sin(clamp01(spin / ROLL) * Math.PI) * 0.28 * tucked
+    rollQuat.setFromAxisAngle(rollAxis, -spin)
+    const laneLean = (LANE_X[player.lane] - player.x) * -0.1 * (1 - tucked * 0.85)
+    const jumpBank = (wDrop * 0.18 - wTake * 0.08) * air
+    leanQuat.setFromAxisAngle(leanAxis, laneLean + jumpBank)
+    visual.current.quaternion.copy(leanQuat).multiply(rollQuat)
+    body.current.rotation.x = mix(current.lean, 0.48, 0.22, -0.62, -0.88, -0.9)
+    body.current.position.y = mix(current.y, current.y + 0.1, current.y + 0.04, current.y - 0.02, current.y - 0.2, 0.02)
+    body.current.position.z = lerp(0, -0.02, tucked)
+    const squash = Math.max(player.land || 0, hit) * (1 - tucked) * (1 - air)
+    const stretch = wTake * air * 0.1
+    body.current.scale.set(1 + squash * 0.16 - stretch * 0.4, 1 - squash * 0.28 + stretch, 1)
+    legL.current.rotation.x = mix(stride * 0.92, 1.7, 1.55, 0.95, 1.15, 1.85)
+    legR.current.rotation.x = mix(stride * -0.92, -0.95, 1.35, 0.25, 1.05, 2.05)
+    legL.current.rotation.z = mix(0, 0.12, 0.22, 0.48, 0.2, 0.28)
+    legR.current.rotation.z = mix(0, -0.08, -0.18, -0.15, -0.18, -0.22)
+    kneeL.current.rotation.x = mix(-bend(-stride) * 1.45, -1.9, -1.85, -0.7, -2.25, -2.25)
+    kneeR.current.rotation.x = mix(-bend(stride) * 1.45, -0.4, -1.75, -0.55, -2.2, -2.35)
+    armL.current.rotation.x = mix(-0.5 - stride * 0.72, 2.9, 3.05, 1.55, -1.65, 2.45)
+    armR.current.rotation.x = mix(-0.5 + stride * 0.72, 2.75, 3.05, 1.35, -1.4, 2.35)
+    armL.current.rotation.z = mix(0, 0.28, -0.7, -0.95, -0.35, 0.42)
+    armR.current.rotation.z = mix(0, -0.34, 0.78, 1.05, 0.3, -0.55)
     shadow.current.position.y = 0.025
-    const lift = (1 - Math.min(0.45, player.y * 0.18)) * (1 - flight * 0.18)
-    shadow.current.scale.set(lift, lift * 0.72, 1)
+    const lift = (1 - Math.min(0.62, player.y * 0.42)) * (1 - flight * 0.18)
+    shadow.current.scale.set(lift * (1 + hit * 0.35), lift * 0.72, 1)
     if (aura.current) {
       const power = world.smash > 0 ? '#ff5a3c' : world.boostTime > 0 ? '#5dffe0' : world.magnetTime > 0 ? '#7aa2ff' : ''
       aura.current.visible = power !== ''

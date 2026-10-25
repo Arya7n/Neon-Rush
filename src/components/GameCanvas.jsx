@@ -75,7 +75,7 @@ function CameraRig() {
     const shake = world.shake
     target.set(
       player.x * 0.55 + (Math.random() - 0.5) * shake * 0.22,
-      2.45 + player.y * 0.16 + (Math.random() - 0.5) * shake * 0.1,
+      2.45 + player.y * 0.38 - (player.land || 0) * 0.16 + (Math.random() - 0.5) * shake * 0.1,
       5.15 - boost * 0.3,
     )
     const camera = state.camera
@@ -83,7 +83,7 @@ function CameraRig() {
     look.set(player.x * 0.72, 0.92 + player.y * 0.1, -8.5)
     camera.lookAt(look)
     camera.rotateZ(player.x * -0.015)
-    const fov = 50 + boost * 4
+    const fov = 50 + boost * 4 + Math.max(0, player.vy) * 0.42 + Math.max(0, -player.vy) * 0.12
     camera.fov += (fov - camera.fov) * (1 - Math.exp(-2.5 * dt))
     camera.updateProjectionMatrix()
     world.shake = Math.max(0, world.shake - dt * 1.6)
