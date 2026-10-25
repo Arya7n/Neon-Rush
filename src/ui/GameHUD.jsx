@@ -7,7 +7,7 @@ export function MuteButton() {
   const toggleMute = useGameStore((state) => state.toggleMute)
   return (
     <button className="mute" onClick={toggleMute} aria-pressed={muted}>
-      {muted ? 'Sound off' : 'Sound on'}
+      {muted ? 'Muted' : 'Sound'}
     </button>
   )
 }
@@ -41,20 +41,26 @@ export function GameHUD() {
         <span>Score</span>
         <strong>{Math.floor(score).toLocaleString('en-US')}</strong>
       </div>
-      <div className="stat-row">
-        <p className="stat"><span>Distance</span><b>{Math.floor(distance)}m</b></p>
-        <p className="stat"><span>Energy</span><b>{orbs}</b></p>
-        <p className="stat"><span>Combo</span><b>{combo > 1 ? `x${combo}` : '—'}</b></p>
-        <p className="stat"><span>Power</span><b>{powers.length ? powers.join(' · ') : '—'}</b></p>
-        <p className="stat stat-speed">
-          <span>Speed</span>
-          <b>{displaySpeed(speed)}</b>
-          <span className="meter"><i style={{ width: `${filled}%` }} /></span>
-        </p>
-      </div>
+      <p
+        className="readout"
+        aria-label={`Distance ${Math.floor(distance)} meters, energy ${orbs}, combo ${combo}, speed ${displaySpeed(speed)}`}
+      >
+        <span>{Math.floor(distance)}m</span>
+        <span>{orbs}</span>
+        <span className={combo > 1 ? 'hot' : ''}>{combo > 1 ? `x${combo}` : '—'}</span>
+        <span className="readout-speed">
+          {displaySpeed(speed)}
+          <span className="meter" aria-hidden="true"><i style={{ width: `${filled}%` }} /></span>
+        </span>
+      </p>
+      {powers.length > 0 && (
+        <div className="powers">
+          {powers.map((power) => <span key={power} className="power">{power}</span>)}
+        </div>
+      )}
       {banner && <p className="banner">{banner}</p>}
       {phase === 'PLAYING' && (
-        <button className="btn btn-ghost hud-pause" onClick={() => useGameStore.getState().pause()}>
+        <button className="hud-pause" onClick={() => useGameStore.getState().pause()}>
           Pause
         </button>
       )}

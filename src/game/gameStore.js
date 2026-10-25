@@ -104,7 +104,7 @@ export const useGameStore = create((set, get) => ({
 
   start: () => {
     clearInput()
-    worldRef.current = createWorld()
+    worldRef.current = createWorld({ place: getTheme(get().theme).place })
     set({
       phase: 'PLAYING',
       score: 0,

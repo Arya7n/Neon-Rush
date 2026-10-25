@@ -22,16 +22,29 @@ import { clamp } from './math.js'
 import { planRow } from './spawning.js'
 
 function obstacleSlot() {
-  return { active: false, lane: 1, type: 'low', spawnAt: 0, z: 40, resolved: false, length: 0, warned: false }
+  return {
+    active: false,
+    lane: 1,
+    type: 'low',
+    spawnAt: 0,
+    z: 40,
+    resolved: false,
+    length: 0,
+    warned: false,
+    fromLane: 1,
+    toLane: 1,
+    sweep: 0,
+  }
 }
 
 function orbSlot() {
   return { active: false, lane: 1, spawnAt: 0, z: 40, kind: 'energy', x: LANE_X[1] }
 }
 
-export function createWorld({ spawn = true, rng = Math.random } = {}) {
+export function createWorld({ spawn = true, rng = Math.random, place = 'city' } = {}) {
   const world = {
     rng,
+    place,
     distance: 0,
     elapsed: 0,
     speed: START_SPEED,
@@ -81,7 +94,7 @@ function prefill(world) {
 }
 
 function spawnRow(world) {
-  const plan = planRow(world.nextSpawn, world.prevOpen, world.rng)
+  const plan = planRow(world.nextSpawn, world.prevOpen, world.rng, world.place)
   const rowAt = world.nextSpawn
   for (const item of plan.obstacles) {
     const slot = world.obstacles.find((entry) => !entry.active)
@@ -91,6 +104,9 @@ function spawnRow(world) {
     slot.lane = item.lane
     slot.spawnAt = item.spawnAt ?? rowAt
     slot.length = item.length || 0
+    slot.fromLane = item.fromLane ?? item.lane
+    slot.toLane = item.toLane ?? item.lane
+    slot.sweep = item.sweep || 0
     slot.warned = false
     slot.resolved = false
     slot.z = world.distance - slot.spawnAt
@@ -259,6 +275,14 @@ function step(world, dt, input) {
           if (other.type === 'train' && other.spawnAt === obstacle.spawnAt) other.warned = true
         }
         flash(world, 'TRAIN')
+      } else if (obstacle.type === 'vine') {
+        for (const other of world.obstacles) {
+          if (other.type === 'vine' && other.spawnAt === obstacle.spawnAt) other.warned = true
+        }
+        flash(world, 'VINES')
+      } else if (obstacle.type === 'wave') {
+        obstacle.warned = true
+        flash(world, 'WAVE')
       } else if (obstacle.type === 'ramp' && obstacle.lane === 1) {
         obstacle.warned = true
         flash(world, 'RAMP')

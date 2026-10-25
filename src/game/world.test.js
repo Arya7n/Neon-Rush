@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { HIGH_BAR_Y, LOW_CLEAR_Y, MAX_SPEED, TRACK_LEAD, TRACK_LENGTH } from './constants.js'
+import { duneRise, waveCenter } from './hazards.js'
+import { LANE_X, MAX_SPEED, TRACK_LEAD, TRACK_LENGTH } from './constants.js'
 import { overlapsPlayer } from './collision.js'
 import { loopZ, mulberry32 } from './math.js'
 import { ALL_PATTERNS, openLanes, planRow } from './spawning.js'
@@ -297,6 +298,86 @@ test('a hit collapses the runner before the results screen', () => {
   assert.equal(world.distance, 40)
 })
 
+test('places swap the hazards but keep a way through', () => {
+  const rng = mulberry32(9)
+  let open = [0, 1, 2]
+  let vines = 0
+  let dunes = 0
+  let waves = 0
+  let highs = 0
+  let lows = 0
+  for (let i = 0; i < 80; i += 1) {
+    const jungle = planRow(80 + i * 30, open, rng, 'jungle')
+    vines += jungle.obstacles.filter((item) => item.type === 'vine').length
+    highs += jungle.obstacles.filter((item) => item.type === 'high').length
+    assert.ok(jungle.open.some((lane) => open.includes(lane)))
+    open = jungle.open
+  }
+  open = [0, 1, 2]
+  for (let i = 0; i < 80; i += 1) {
+    const sand = planRow(80 + i * 30, open, rng, 'dunes')
+    dunes += sand.obstacles.filter((item) => item.type === 'dune').length
+    lows += sand.obstacles.filter((item) => item.type === 'low').length
+    assert.ok(sand.open.some((lane) => open.includes(lane)))
+    open = sand.open
+  }
+  open = [0, 1, 2]
+  for (let i = 0; i < 80; i += 1) {
+    const coast = planRow(80 + i * 30, open, rng, 'shore')
+    waves += coast.obstacles.filter((item) => item.type === 'wave').length
+    assert.ok(coast.open.some((lane) => open.includes(lane)))
+    assert.ok(coast.obstacles.filter((item) => item.type === 'wave').length <= 1)
+    open = coast.open
+  }
+  assert.ok(vines > 0)
+  assert.equal(highs, 0)
+  assert.ok(dunes > 0)
+  assert.equal(lows, 0)
+  assert.ok(waves > 0)
+})
+
+test('vines, sand bars, and waves each have one way out', () => {
+  const player = { x: 0, y: 0, sliding: false, lane: 1 }
+  const vine = { type: 'vine', lane: 1, z: 0 }
+  assert.equal(overlapsPlayer(player, vine), true)
+  assert.equal(overlapsPlayer({ ...player, sliding: true }, vine), false)
+
+  const buried = { type: 'dune', lane: 1, z: -24 }
+  const erupted = { type: 'dune', lane: 1, z: 0 }
+  assert.equal(duneRise(-30), 0)
+  assert.equal(duneRise(0), 1)
+  assert.ok(duneRise(-24) < 0.55)
+  assert.equal(overlapsPlayer(player, buried), false)
+  assert.equal(overlapsPlayer(player, erupted), true)
+  assert.equal(overlapsPlayer({ ...player, y: 1.3 }, erupted), false)
+
+  const wave = { type: 'wave', lane: 1, fromLane: 0, toLane: 1, sweep: 16, z: 0 }
+  assert.ok(Math.abs(waveCenter(wave) - LANE_X[1]) < 0.01)
+  assert.equal(overlapsPlayer({ ...player, x: LANE_X[1] }, wave), true)
+  assert.equal(overlapsPlayer({ ...player, x: LANE_X[0] }, wave), false)
+  assert.equal(overlapsPlayer({ ...player, x: LANE_X[2] }, wave), false)
+  const approaching = { ...wave, z: -16 }
+  assert.ok(Math.abs(waveCenter(approaching) - LANE_X[0]) < 0.01)
+})
+
+test('an autopilot survives each place', () => {
+  const dt = 1 / 60
+  for (const [place, seed] of [['jungle', 3], ['dunes', 5], ['shore', 8]]) {
+    const run = createWorld({ rng: mulberry32(seed), place })
+    for (let frame = 0; frame < 40 * 60; frame += 1) {
+      const result = updateWorld(run, dt, autopilot(run))
+      if (result.crashed) {
+        const nearby = run.obstacles
+          .filter((item) => item.active && Math.abs(item.z) < 8)
+          .map((item) => `${item.type}@lane${item.lane} z=${item.z.toFixed(2)}`)
+          .join(', ')
+        assert.fail(`${place} crashed d=${run.distance.toFixed(1)} lane=${run.player.lane} [${nearby}]`)
+      }
+    }
+    assert.ok(run.distance > 700, place)
+  }
+})
+
 test('restart replaces the world and returns to a clean run', () => {
   useGameStore.getState().start()
   const first = worldRef.current
@@ -325,7 +406,7 @@ function autopilot(world) {
   const row = near.filter((item) => Math.abs(threatZ(item) - closestZ) < 4)
   const byLane = [[], [], []]
   row.forEach((item) => byLane[item.lane].push(item.type))
-  const safe = (lane) => !byLane[lane].some((type) => type === 'block' || type === 'train')
+  const safe = (lane) => !byLane[lane].some((type) => type === 'block' || type === 'train' || type === 'wave')
   const lane = world.player.lane
   if (!safe(lane)) {
     const options = [0, 1, 2]
@@ -340,7 +421,7 @@ function autopilot(world) {
   const close = closestZ > -lead
   return {
     laneDelta: 0,
-    jump: close && types.includes('low'),
-    slide: close && types.includes('high') && !types.includes('low'),
+    jump: close && (types.includes('low') || types.includes('dune')),
+    slide: close && (types.includes('high') || types.includes('vine')) && !types.includes('low') && !types.includes('dune'),
   }
 }

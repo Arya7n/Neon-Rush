@@ -37,8 +37,7 @@ export function StartScreen() {
       <section className="panel panel-start">
         <p className="eyebrow">Endless runner</p>
         <h1 className="title">
-          NEON
-          <span> RUSH</span>
+          NEON <span>RUSH</span>
         </h1>
         <p className="tagline">Three lanes. No brakes. Chain energy, then grab a magnet, a score boost, or a smash.</p>
         <div className="themes" role="listbox" aria-label="Place">
@@ -49,11 +48,12 @@ export function StartScreen() {
               onClick={() => setTheme(theme.id)}
               aria-pressed={theme.id === themeId}
             >
-              <i style={{ background: `linear-gradient(90deg, ${theme.primary}, ${theme.secondary})` }} />
-              {theme.name}
+              <i style={{ background: `linear-gradient(145deg, ${theme.primary}, ${theme.secondary})` }} />
+              <span>{theme.name}</span>
             </button>
           ))}
         </div>
+        <p className="hazard-note">{THEMES.find((theme) => theme.id === themeId)?.hazard}</p>
         {pausedRun ? (
           <div className="action-row">
             <button ref={startRef} className="btn btn-primary" onClick={continueRun}>
@@ -68,16 +68,20 @@ export function StartScreen() {
             Start Run
           </button>
         )}
-        {pausedRun && <p className="best">Paused at {Math.floor(distance)}m</p>}
+        {pausedRun && <p className="best">Paused at <b>{Math.floor(distance)}m</b></p>}
         <div className="controls">
-          <p><b>A / D</b> or arrows change lanes</p>
-          <p><b>W / ↑ / Space</b> jump</p>
-          <p><b>S / ↓</b> slide</p>
-          <p><b>Esc</b> pause</p>
-          <p><b>Swipe</b> on touch screens</p>
+          <p><span><kbd>A</kbd><kbd>D</kbd></span>Lanes</p>
+          <p><span><kbd>W</kbd><kbd>↑</kbd></span>Jump</p>
+          <p><span><kbd>S</kbd><kbd>↓</kbd></span>Slide</p>
+          <p><span><kbd>Esc</kbd></span>Pause</p>
         </div>
         <div className="start-row">
-          {best > 0 && <p className="best">Best {best.toLocaleString('en-US')}</p>}
+          {best > 0 && (
+            <p className="best">
+              <span>Best</span>
+              <b>{best.toLocaleString('en-US')}</b>
+            </p>
+          )}
           <button
             className="btn btn-ghost"
             onClick={() => setQuality(quality === 'high' ? 'low' : 'high')}

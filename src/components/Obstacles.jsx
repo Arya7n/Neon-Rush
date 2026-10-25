@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGameStore } from '../game/gameStore.js'
 import { LANE_X, OBSTACLE_POOL, TRAIN_LENGTH } from '../game/constants.js'
+import { duneRise, waveCenter } from '../game/hazards.js'
 import { getTheme } from '../game/themes.js'
 
 const DUMMY = new THREE.Object3D()
@@ -41,6 +42,12 @@ export function Obstacles({ worldRef }) {
   const trainNose = useRef()
   const trainGlass = useRef()
   const ramp = useRef()
+  const vine = useRef()
+  const strand = useRef()
+  const dune = useRef()
+  const duneBase = useRef()
+  const wave = useRef()
+  const foam = useRef()
   const stripes = useMemo(() => {
     const canvas = document.createElement('canvas')
     canvas.width = 64
@@ -64,13 +71,13 @@ export function Obstacles({ worldRef }) {
   }, [])
 
   useLayoutEffect(() => {
-    ;[low, bar, postL, postR, block, edge, warnLow, warnHigh, warnBlock, legs, wheels, windows, train, trainNose, trainGlass, ramp].forEach((ref) => {
+    ;[low, bar, postL, postR, block, edge, warnLow, warnHigh, warnBlock, legs, wheels, windows, train, trainNose, trainGlass, ramp, vine, strand, dune, duneBase, wave, foam].forEach((ref) => {
       if (ref.current) ref.current.frustumCulled = false
     })
   }, [])
 
   useFrame(() => {
-    if (!low.current || !warnBlock.current || !legs.current || !wheels.current || !windows.current || !train.current || !ramp.current) return
+    if (!low.current || !warnBlock.current || !legs.current || !wheels.current || !windows.current || !train.current || !ramp.current || !vine.current || !dune.current || !wave.current) return
     const phase = useGameStore.getState().phase
     const visible = phase !== 'MENU' || useGameStore.getState().pausedRun
     const list = worldRef.current.obstacles
@@ -79,6 +86,11 @@ export function Obstacles({ worldRef }) {
     let blockCount = 0
     let trainCount = 0
     let rampCount = 0
+    let vineCount = 0
+    let strandCount = 0
+    let duneCount = 0
+    let waveCount = 0
+    const elapsed = worldRef.current.elapsed || 0
     if (visible) {
       for (let i = 0; i < OBSTACLE_POOL; i += 1) {
         const item = list[i]
@@ -122,6 +134,27 @@ export function Obstacles({ worldRef }) {
           place(ramp.current, rampCount, x, 0.42, item.z, 2.15, 0.55, 2.6, 0.42)
           place(warnHigh.current, highCount + rampCount, x, 0.03, item.z - 4.2, 1.5, 0.02, 1.8)
           rampCount += 1
+        } else if (item.type === 'vine' && vineCount < MAX) {
+          place(vine.current, vineCount, x, 2.2, item.z, 1.9, 0.1, 0.24)
+          for (let s = 0; s < 5 && strandCount < MAX * 5; s += 1) {
+            const sway = Math.sin(elapsed * 2.4 + item.spawnAt + s) * 0.14
+            place(strand.current, strandCount, x + (s - 2) * 0.36, 1.72, item.z, 0.06, 0.95, 0.06, 0, sway)
+            strandCount += 1
+          }
+          place(warnHigh.current, highCount + rampCount + vineCount, x, 0.03, item.z - 4.5, 1.05, 0.02, 1.6)
+          vineCount += 1
+        } else if (item.type === 'dune' && duneCount < MAX) {
+          const rise = duneRise(item.z)
+          place(duneBase.current, duneCount, x, 0.035, item.z, 2.15, 0.07, 1.7)
+          place(dune.current, duneCount, x, 0.05 + rise * 0.34, item.z, 1.35, 0.12 + rise * 0.72, 0.62)
+          duneCount += 1
+        } else if (item.type === 'wave' && waveCount < 16) {
+          const waveX = waveCenter(item)
+          const tilt = Math.sign((LANE_X[item.toLane] ?? x) - (LANE_X[item.fromLane] ?? x)) * 0.18
+          place(wave.current, waveCount, waveX, 0.58, item.z, 2.35, 1.15, 1.7, 0, tilt)
+          place(foam.current, waveCount, waveX, 1.12, item.z - 0.15, 2.15, 0.16, 0.45)
+          place(warnBlock.current, blockCount + trainCount + waveCount, x, 0.03, item.z - 5, 1.15, 0.02, 1.8)
+          waveCount += 1
         }
       }
     }
@@ -132,8 +165,8 @@ export function Obstacles({ worldRef }) {
     commit(block.current, blockCount)
     commit(edge.current, blockCount)
     commit(warnLow.current, lowCount)
-    commit(warnHigh.current, highCount + rampCount)
-    commit(warnBlock.current, blockCount + trainCount)
+    commit(warnHigh.current, highCount + rampCount + vineCount)
+    commit(warnBlock.current, blockCount + trainCount + waveCount)
     commit(legs.current, lowCount * 2)
     commit(wheels.current, blockCount * 4)
     commit(windows.current, blockCount)
@@ -141,6 +174,12 @@ export function Obstacles({ worldRef }) {
     commit(trainNose.current, trainCount)
     commit(trainGlass.current, trainCount * 4)
     commit(ramp.current, rampCount)
+    commit(vine.current, vineCount)
+    commit(strand.current, strandCount)
+    commit(dune.current, duneCount)
+    commit(duneBase.current, duneCount)
+    commit(wave.current, waveCount)
+    commit(foam.current, waveCount)
   })
 
   return (
@@ -201,11 +240,35 @@ export function Obstacles({ worldRef }) {
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="#ffb703" emissive="#ffb703" emissiveIntensity={0.2} roughness={0.45} />
       </instancedMesh>
-      <instancedMesh ref={warnHigh} args={[null, null, 32]}>
+      <instancedMesh ref={vine} args={[null, null, MAX]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#3f8f45" emissive="#b6f25a" emissiveIntensity={0.2} roughness={0.7} />
+      </instancedMesh>
+      <instancedMesh ref={strand} args={[null, null, MAX * 5]}>
+        <cylinderGeometry args={[1, 1, 1, 6]} />
+        <meshStandardMaterial color="#2f7a38" emissive="#8dcc4a" emissiveIntensity={0.12} roughness={0.75} />
+      </instancedMesh>
+      <instancedMesh ref={dune} args={[null, null, MAX]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#d3924a" roughness={0.9} metalness={0.02} />
+      </instancedMesh>
+      <instancedMesh ref={duneBase} args={[null, null, MAX]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#e6c07a" roughness={0.95} />
+      </instancedMesh>
+      <instancedMesh ref={wave} args={[null, null, 16]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#49b7e8" emissive="#7fd4ff" emissiveIntensity={0.25} transparent opacity={0.82} roughness={0.2} />
+      </instancedMesh>
+      <instancedMesh ref={foam} args={[null, null, 16]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial color="#f7fbff" emissive="#ffffff" emissiveIntensity={0.15} roughness={0.35} />
+      </instancedMesh>
+      <instancedMesh ref={warnHigh} args={[null, null, 48]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color={theme.primary} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>
-      <instancedMesh ref={warnBlock} args={[null, null, 32]}>
+      <instancedMesh ref={warnBlock} args={[null, null, 48]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshBasicMaterial color={theme.danger} transparent opacity={0.4} depthWrite={false} toneMapped={false} />
       </instancedMesh>

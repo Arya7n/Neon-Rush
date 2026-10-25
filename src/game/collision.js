@@ -11,11 +11,17 @@ import {
   SLIDE_HEIGHT,
   STAND_HEIGHT,
 } from './constants.js'
+import { duneRise, waveCenter } from './hazards.js'
 
 export const NEAR_MISS_PAD = 0.9
 
 export function laneCenter(lane) {
   return LANE_X[lane] ?? 0
+}
+
+export function obstacleX(obstacle) {
+  if (obstacle?.type === 'wave') return waveCenter(obstacle)
+  return laneCenter(obstacle?.lane)
 }
 
 function overlapsXZ(player, lane, hitX, hitZ, z) {
@@ -25,20 +31,25 @@ function overlapsXZ(player, lane, hitX, hitZ, z) {
 }
 
 /**
- * Low barriers are cleared by jumping.
- * Overhead bars are cleared by sliding.
- * Blocks occupy the whole body and force a lane change.
+ * Low barriers and erupted sand bars are cleared by jumping.
+ * Overhead bars and vines are cleared by sliding.
+ * Blocks, trains, and waves occupy the whole body and force a lane change.
  */
 export function overlapsPlayer(player, obstacle) {
-  const halfZ = obstacle.type === 'train' ? (obstacle.length || TRAIN_LENGTH) / 2 : HIT_Z
-  if (Math.abs(player.x - laneCenter(obstacle.lane)) > HIT_X) return false
+  const long = obstacle.type === 'train' || (obstacle.type === 'vine' && obstacle.length)
+  const halfZ = long ? (obstacle.length || TRAIN_LENGTH) / 2 : HIT_Z
+  if (Math.abs(player.x - obstacleX(obstacle)) > HIT_X) return false
   if (Math.abs(obstacle.z) > halfZ) return false
-  if ((obstacle.type === 'block' || obstacle.type === 'train') && player.y > RAMP_CLEAR_Y) return false
+  if ((obstacle.type === 'block' || obstacle.type === 'train' || obstacle.type === 'wave') && player.y > RAMP_CLEAR_Y) return false
   if (obstacle.type === 'ramp') return player.y < 0.45
   const height = player.sliding ? SLIDE_HEIGHT : STAND_HEIGHT
   const head = player.y + height
+  if (obstacle.type === 'dune') {
+    if (duneRise(obstacle.z) < 0.55) return false
+    return player.y < LOW_CLEAR_Y
+  }
   if (obstacle.type === 'low') return player.y < LOW_CLEAR_Y
-  if (obstacle.type === 'high') return player.y <= RAMP_CLEAR_Y && head > HIGH_BAR_Y
+  if (obstacle.type === 'high' || obstacle.type === 'vine') return player.y <= RAMP_CLEAR_Y && head > HIGH_BAR_Y
   return true
 }
 
@@ -51,6 +62,6 @@ export function overlapsOrb(player, orb) {
 
 /** Close enough to feel the pass, far enough that the hit boxes do not overlap. */
 export function isNearMiss(player, obstacle) {
-  const dx = Math.abs(player.x - laneCenter(obstacle.lane))
+  const dx = Math.abs(player.x - obstacleX(obstacle))
   return dx > HIT_X && dx < HIT_X + NEAR_MISS_PAD
 }

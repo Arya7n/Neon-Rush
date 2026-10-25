@@ -91,28 +91,36 @@ export function Player() {
       impact.current = 0
       const t = Math.min(1, fall)
       const jolt = Math.sin(Math.min(1, t / 0.14) * Math.PI)
-      const tumble = smoothstep(clamp01((t - 0.06) / 0.48))
-      const settle = smoothstep(clamp01((t - 0.58) / 0.42))
-      const hop = Math.sin(clamp01(t / 0.3) * Math.PI) * (1 - settle)
-      const pivot = 0.5 * tumble
+      const tumble = smoothstep(clamp01((t - 0.06) / 0.5))
+      const settle = smoothstep(clamp01((t - 0.5) / 0.42))
+      const hop = Math.sin(clamp01(t / 0.28) * Math.PI) * (1 - settle)
+      const pitch = tumble * (Math.PI / 2)
+      const yaw = jolt * 0.2
+      const tip = Math.sin(tumble * Math.PI) * 0.22 * (1 - settle)
+      const cos = Math.cos(pitch)
+      const sin = Math.sin(pitch)
+      const dropped = (y, z) => y * cos + z * sin
+      const lowest = Math.min(dropped(1.38, -0.22), dropped(0.73, -0.16), dropped(0.04, -0.2))
+      const lift = Math.max(0.02, 0.08 - lowest) + Math.abs(tip) * 0.4
+      const flail = 1 - tumble
       root.current.position.x = player.x
-      visual.current.position.y = player.y + hop * 0.7 + pivot
-      visual.current.position.z = -tumble * 0.42
-      visual.current.rotation.set(-tumble * 2.9, jolt * 0.35, Math.sin(tumble * Math.PI) * 1.15)
-      body.current.rotation.x = -0.2 - jolt * 1.05 - settle * 0.25
-      body.current.position.y = lerp(0.52, 0.04, tumble)
+      visual.current.position.y = player.y * (1 - settle) + hop * 0.4 + lift
+      visual.current.position.z = -sin * 0.15
+      visual.current.rotation.set(-pitch, yaw, tip)
+      body.current.rotation.x = -0.2 * flail
+      body.current.position.y = 0.52
       body.current.position.z = 0
-      body.current.scale.set(1 + settle * 0.08, 1 - settle * 0.14, 1)
-      legL.current.rotation.x = jolt * 1.7 + tumble * 0.35 + settle * 0.9
-      legR.current.rotation.x = -jolt * 1.15 - tumble * 1.25 + settle * 0.15
-      legL.current.rotation.z = settle * 0.45
-      legR.current.rotation.z = -jolt * 0.2 - settle * 0.2
-      kneeL.current.rotation.x = -jolt * 0.8 - tumble * 1.5 - settle * 0.7
-      kneeR.current.rotation.x = -jolt * 1.6 - settle * 0.45
-      armL.current.rotation.x = -0.4 + jolt * 2.9 + tumble * 0.2 - settle * 1.1
-      armR.current.rotation.x = -0.5 - jolt * 1.8 + tumble * 2.4 - settle * 0.4
-      armL.current.rotation.z = jolt * 0.9 + settle * 0.7
-      armR.current.rotation.z = -jolt * 1.1 - settle * 0.35
+      body.current.scale.set(1, 1, 1)
+      legL.current.rotation.x = jolt * 1.3 * flail + tumble * 0.25
+      legR.current.rotation.x = -jolt * 0.8 * flail + tumble * 0.05
+      legL.current.rotation.z = tumble * 0.2
+      legR.current.rotation.z = -jolt * 0.15 * flail - tumble * 0.16
+      kneeL.current.rotation.x = -jolt * 0.6 * flail - tumble * 0.35
+      kneeR.current.rotation.x = -jolt * 1.1 * flail - tumble * 0.65
+      armL.current.rotation.x = -0.4 + jolt * 2.2 * flail + tumble * 0.15
+      armR.current.rotation.x = -0.5 - jolt * 1.1 * flail - tumble * 0.1
+      armL.current.rotation.z = jolt * 0.45 * flail + tumble * 1.05
+      armR.current.rotation.z = -jolt * 0.6 * flail - tumble * 0.9
       shadow.current.position.y = 0.025
       shadow.current.scale.set(1.2 + settle * 0.35, 0.7, 1)
       if (aura.current) aura.current.visible = false

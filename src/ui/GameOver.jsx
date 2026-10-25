@@ -24,7 +24,7 @@ export function GameOver() {
 
   return (
     <div className="overlay overlay-scrim">
-      <section className="panel" role="dialog" aria-modal="true" aria-labelledby="over-title">
+      <section className={record ? 'panel panel-record' : 'panel'} role="dialog" aria-modal="true" aria-labelledby="over-title">
         <p className="eyebrow">{record ? 'New record' : 'Signal lost'}</p>
         <h2 id="over-title">Run over</h2>
         <p className="final-score">{Math.floor(score).toLocaleString('en-US')}</p>
