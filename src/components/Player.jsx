@@ -2,9 +2,35 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
-import { LANE_X } from '../game/constants.js'
+import { LANE_X, SLIDE_TIME } from '../game/constants.js'
 import { useGameStore, worldRef } from '../game/gameStore.js'
 import { getTheme } from '../game/themes.js'
+
+const ROLL = Math.PI * 2
+
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value))
+}
+
+function smoothstep(value) {
+  const t = clamp01(value)
+  return t * t * (3 - 2 * t)
+}
+
+function lerp(from, to, t) {
+  return from + (to - from) * t
+}
+
+/** Tuck in, turn one full forward roll, then open back onto the feet. */
+function rollPose(slideTime) {
+  const u = clamp01(1 - slideTime / SLIDE_TIME)
+  const enter = smoothstep(u / 0.14)
+  const exit = smoothstep((u - 0.78) / 0.22)
+  return {
+    tuck: enter * (1 - exit),
+    spin: smoothstep((u - 0.1) / 0.72) * ROLL,
+  }
+}
 
 export function Player() {
   const root = useRef()
@@ -19,6 +45,7 @@ export function Player() {
   const shadow = useRef()
   const aura = useRef()
   const pose = useRef({ y: 0.52, lean: -0.2 })
+  const roll = useRef({ spin: 0, tuck: 0, live: false })
   const themeId = useGameStore((state) => state.theme)
 
   const mats = useMemo(
@@ -53,6 +80,11 @@ export function Player() {
     const player = world.player
     const fall = player.fall || 0
     if (fall > 0.001) {
+      roll.current.spin = 0
+      roll.current.tuck = 0
+      roll.current.live = false
+      visual.current.position.z = 0
+      body.current.position.z = 0
       const t = Math.min(1, fall)
       const stumble = Math.sin((Math.min(t, 0.22) / 0.22) * Math.PI)
       const drop = Math.min(1, Math.max(0, (t - 0.12) / 0.7))
@@ -79,38 +111,66 @@ export function Player() {
       if (aura.current) aura.current.visible = false
       return
     }
-    visual.current.rotation.x = 0
-    legL.current.rotation.z = 0
-    legR.current.rotation.z = 0
-    armL.current.rotation.z = 0
-    armR.current.rotation.z = 0
-
     const running = player.y <= 0.04 && !player.sliding
     const step = dt > 0 ? Math.min(dt, 0.05) : 0.016
     const blend = 1 - Math.exp(-10 * step)
     const cycle = world.distance * 0.64
     const stride = running ? Math.sin(cycle) : 0
     const flight = running ? (1 - Math.cos(cycle * 2)) * 0.5 : 0
-    const tuck = (amount) => Math.pow(Math.max(amount, 0), 1.65)
+    const bend = (amount) => Math.pow(Math.max(amount, 0), 1.65)
     const current = pose.current
-    const aimY = player.sliding ? 0.34 : 0.52
-    const aimLean = player.sliding ? -1.02 : running ? -0.24 : -0.1
+    const aimY = 0.52
+    const aimLean = running ? -0.24 : -0.1
     current.y += (aimY - current.y) * blend
     current.lean += (aimLean - current.lean) * blend
 
+    const motion = roll.current
+    if (player.sliding) {
+      const posed = rollPose(player.slideTime)
+      motion.spin = posed.spin
+      motion.tuck = posed.tuck
+      motion.live = true
+    } else if (motion.live) {
+      if (motion.spin > 0.25 && motion.spin < ROLL - 0.08) {
+        motion.spin = Math.min(ROLL, motion.spin + step * 18)
+        motion.tuck = Math.max(motion.tuck, 0.7)
+      } else {
+        motion.spin = 0
+        motion.tuck += (0 - motion.tuck) * (1 - Math.exp(-14 * step))
+        if (motion.tuck < 0.02) {
+          motion.tuck = 0
+          motion.live = false
+        }
+      }
+    }
+    const tucked = motion.tuck
+    const spin = motion.spin
+    const pivot = 0.58
+
     root.current.position.x = player.x
-    visual.current.position.y = player.y + flight * 0.03
-    visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.1
-    body.current.rotation.x = current.lean
-    body.current.position.y = current.y
+    visual.current.position.y = player.y + flight * 0.03 * (1 - tucked) + pivot * tucked
+    visual.current.position.z = 0
+    visual.current.rotation.x = -spin
+    visual.current.rotation.z = (LANE_X[player.lane] - player.x) * -0.1 * (1 - tucked * 0.75) - Math.sin(spin) * 0.32 * tucked
+    body.current.rotation.x = lerp(current.lean, -1.28, tucked)
+    body.current.position.y = lerp(current.y, 0.02, tucked)
+    body.current.position.z = lerp(0, 0.16, tucked)
     const squash = player.land || 0
-    body.current.scale.set(1 + squash * 0.04, 1 - squash * 0.08, 1)
-    legL.current.rotation.x = stride * 0.92
-    legR.current.rotation.x = stride * -0.92
-    kneeL.current.rotation.x = -tuck(-stride) * 1.45
-    kneeR.current.rotation.x = -tuck(stride) * 1.45
-    armL.current.rotation.x = -0.5 - stride * 0.72
-    armR.current.rotation.x = -0.5 + stride * 0.72
+    body.current.scale.set(
+      lerp(1 + squash * 0.04, 1.1, tucked),
+      lerp(1 - squash * 0.08, 0.7, tucked),
+      lerp(1, 1.08, tucked),
+    )
+    legL.current.rotation.x = lerp(stride * 0.92, 1.35, tucked)
+    legR.current.rotation.x = lerp(stride * -0.92, 1.5, tucked)
+    legL.current.rotation.z = lerp(0, 0.18, tucked)
+    legR.current.rotation.z = lerp(0, -0.18, tucked)
+    kneeL.current.rotation.x = lerp(-bend(-stride) * 1.45, -2.15, tucked)
+    kneeR.current.rotation.x = lerp(-bend(stride) * 1.45, -2.15, tucked)
+    armL.current.rotation.x = lerp(-0.5 - stride * 0.72, 2.2, tucked)
+    armR.current.rotation.x = lerp(-0.5 + stride * 0.72, 2.05, tucked)
+    armL.current.rotation.z = lerp(0, 0.9, tucked)
+    armR.current.rotation.z = lerp(0, -0.9, tucked)
     shadow.current.position.y = 0.025
     const lift = (1 - Math.min(0.45, player.y * 0.18)) * (1 - flight * 0.18)
     shadow.current.scale.set(lift, lift * 0.72, 1)
