@@ -83,6 +83,7 @@ export function Player() {
   useFrame((_, dt) => {
     const world = worldRef.current
     const player = world.player
+    mats.accent.emissiveIntensity = 0.35 + Math.min(world.combo || 0, 8) * 0.16
     const fall = player.fall || 0
     if (fall > 0.001) {
       roll.current.spin = 0
