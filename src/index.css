@@ -387,6 +387,42 @@ kbd {
   box-shadow: 0 0 10px rgba(61, 240, 255, 0.7);
 }
 
+.chase-read {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 90, 70, 0.28);
+  background: rgba(6, 10, 18, 0.4);
+  color: #ffb4a8;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+.chase-read.hot { color: white; border-color: rgba(255, 70, 60, 0.8); }
+
+.meter-chase { width: 42px; background: rgba(255, 80, 60, 0.16); }
+.meter-chase i {
+  background: linear-gradient(90deg, #ffb15a, #ff3b4e);
+  box-shadow: 0 0 8px rgba(255, 70, 60, 0.7);
+}
+
+.hit-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(255, 70, 60, 0.38);
+  animation: hit-flash 0.42s ease-out forwards;
+}
+
+@keyframes hit-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 .powers {
   display: flex;
   gap: 4px;

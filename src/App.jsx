@@ -2,7 +2,7 @@ import { Component } from 'react'
 import { GameCanvas } from './components/GameCanvas.jsx'
 import { useGameHotkeys } from './game/controls.js'
 import { GameOver } from './ui/GameOver.jsx'
-import { GameHUD, MuteButton } from './ui/GameHUD.jsx'
+import { GameHUD, HitFlash, MuteButton } from './ui/GameHUD.jsx'
 import { Countdown, PauseScreen } from './ui/PauseScreen.jsx'
 import { StartScreen } from './ui/StartScreen.jsx'
 import { TouchControls } from './ui/TouchControls.jsx'
@@ -33,6 +33,7 @@ export default function App() {
         <GameCanvas />
       </Boundary>
       <div className="vignette" />
+      <HitFlash />
       <div className="ui-layer">
         <MuteButton />
         <GameHUD />

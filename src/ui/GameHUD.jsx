@@ -1,6 +1,8 @@
 import { displaySpeed } from '../game/difficulty.js'
 import { MAX_SPEED, START_SPEED } from '../game/constants.js'
+import { threatName } from '../game/chase.js'
 import { useGameStore } from '../game/gameStore.js'
+import { getTheme } from '../game/themes.js'
 
 export function MuteButton() {
   const muted = useGameStore((state) => state.muted)
@@ -10,6 +12,12 @@ export function MuteButton() {
       {muted ? 'Muted' : 'Sound'}
     </button>
   )
+}
+
+export function HitFlash() {
+  const flash = useGameStore((state) => state.flash)
+  if (!flash) return null
+  return <div key={flash} className="hit-flash" />
 }
 
 export function GameHUD() {
@@ -24,6 +32,10 @@ export function GameHUD() {
   const magnetTime = useGameStore((state) => state.magnetTime)
   const boostTime = useGameStore((state) => state.boostTime)
   const banner = useGameStore((state) => state.banner)
+  const chase = useGameStore((state) => state.chase)
+  const theme = useGameStore((state) => state.theme)
+  const threat = threatName(getTheme(theme).place)
+  const chasePct = Math.max(0, Math.min(100, Math.round((chase || 0) * 100)))
   const powers = [
     smash ? 'Smash' : '',
     boostTime > 0 ? `x2 ${Math.ceil(boostTime)}s` : '',
@@ -52,6 +64,10 @@ export function GameHUD() {
           {displaySpeed(speed)}
           <span className="meter" aria-hidden="true"><i style={{ width: `${filled}%` }} /></span>
         </span>
+      </p>
+      <p className={`chase-read${chase > 0.66 ? ' hot' : ''}`} aria-label={`${threat} ${chasePct}%`}>
+        <span>{threat}</span>
+        <span className="meter meter-chase" aria-hidden="true"><i style={{ width: `${chasePct}%` }} /></span>
       </p>
       {powers.length > 0 && (
         <div className="powers">
