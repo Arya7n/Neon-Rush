@@ -15,7 +15,9 @@ import {
   SPAWN_AHEAD,
   START_SPEED,
   HIT_Z,
+  ORB_HIT_Z,
 } from './constants.js'
+import { CHASE_MISS_X, CHASE_WARN, creepChase, grabChase, missChase } from './chase.js'
 import { isNearMiss, overlapsOrb, overlapsPlayer } from './collision.js'
 import { speedForDistance } from './difficulty.js'
 import { clamp } from './math.js'
@@ -58,6 +60,9 @@ export function createWorld({ spawn = true, rng = Math.random, place = 'city' } 
     magnetTime: 0,
     boostTime: 0,
     nearMisses: 0,
+    chase: 0,
+    chaseWarned: false,
+    milestone: 0,
     banner: '',
     bannerTime: 0,
     nextSpawn: INITIAL_SPAWN,
@@ -120,6 +125,7 @@ function spawnRow(world) {
     slot.x = LANE_X[orb.lane] ?? 0
     slot.spawnAt = orb.spawnAt
     slot.z = world.distance - orb.spawnAt
+    slot.missed = false
   }
   world.prevOpen = plan.open
   world.lastGap = plan.gap
@@ -141,7 +147,7 @@ function flash(world, text) {
 
 function step(world, dt, input) {
   const player = world.player
-  if (!player.alive) return { collected: 0, crashed: false, shielded: false, smashed: false, nearMisses: 0, powered: 0 }
+  if (!player.alive) return { collected: 0, crashed: false, shielded: false, smashed: false, nearMisses: 0, powered: 0, slipped: 0, closing: false, milestone: false, caught: false }
 
   if (input.laneDelta) {
     player.lane = clamp(player.lane + input.laneDelta, 0, 2)
@@ -253,10 +259,48 @@ function step(world, dt, input) {
     world.bonus += 20 * (world.combo - 1) * mul
     if (mul > 1) world.bonus += 50
     world.orbsCollected += 1
+    world.chase = grabChase(world.chase, world.speed)
     collected += 1
   }
 
+  world.chase = creepChase(world.chase, dt, world.speed, world.distance)
+  let slipped = 0
   let nearMisses = 0
+  for (const orb of world.collectibles) {
+    if (!orb.active || orb.kind !== 'energy' || orb.missed || orb.z <= ORB_HIT_Z) continue
+    orb.missed = true
+    const x = orb.x ?? LANE_X[orb.lane] ?? 0
+    const close = Math.abs(player.x - x) < CHASE_MISS_X
+    world.chase = missChase(world.chase, world.speed, close)
+    slipped += 1
+  }
+
+  const mark = Math.floor(world.distance / 250)
+  let milestone = false
+  if (mark > world.milestone) {
+    world.milestone = mark
+    if (mark > 0) {
+      flash(world, `${mark * 250}M`)
+      milestone = true
+    }
+  }
+
+  let closing = false
+  if (world.chase >= CHASE_WARN && !world.chaseWarned) {
+    world.chaseWarned = true
+    flash(world, 'CLOSING IN')
+    closing = true
+  } else if (world.chase < CHASE_WARN - 0.2) {
+    world.chaseWarned = false
+  }
+
+  if (world.chase >= 1) {
+    player.alive = false
+    world.shake = 1
+    flash(world, 'CAUGHT')
+    return { collected, crashed: true, shielded: false, smashed, nearMisses, powered, slipped, closing, milestone, caught: true }
+  }
+
   for (const obstacle of world.obstacles) {
     if (!obstacle.active || obstacle.resolved || obstacle.z <= HIT_Z) continue
     obstacle.resolved = true
@@ -332,10 +376,10 @@ function step(world, dt, input) {
     }
     player.alive = false
     world.shake = 1
-    return { collected, crashed: true, shielded: false, smashed, nearMisses, powered }
+    return { collected, crashed: true, shielded: false, smashed, nearMisses, powered, slipped, closing, milestone, caught: false }
   }
 
-  return { collected, crashed: false, shielded, smashed, nearMisses, powered }
+  return { collected, crashed: false, shielded, smashed, nearMisses, powered, slipped, closing, milestone, caught: false }
 }
 
 export function updateWorld(world, dt, input) {
@@ -347,19 +391,27 @@ export function updateWorld(world, dt, input) {
   let crashed = false
   let shielded = false
   let smashed = false
+  let slipped = 0
+  let closing = false
+  let milestone = false
+  let caught = false
   for (let i = 0; i < steps; i += 1) {
     const result = step(world, slice, i === 0 ? input : { laneDelta: 0, jump: false, slide: false })
     collected += result.collected
     nearMisses += result.nearMisses
     powered += result.powered
+    slipped += result.slipped || 0
     if (result.shielded) shielded = true
     if (result.smashed) smashed = true
+    if (result.closing) closing = true
+    if (result.milestone) milestone = true
+    if (result.caught) caught = true
     if (result.crashed) {
       crashed = true
       break
     }
   }
-  return { collected, crashed, shielded, smashed, nearMisses, powered }
+  return { collected, crashed, shielded, smashed, nearMisses, powered, slipped, closing, milestone, caught }
 }
 
 export function updateMenu(world, dt) {
