@@ -115,3 +115,24 @@ export function playStart() {
   tone({ freq: 330, to: 660, dur: 0.14, type: 'square', gain: 0.05 })
   tone({ freq: 495, to: 990, dur: 0.16, type: 'square', gain: 0.04, delay: 0.08 })
 }
+
+export function playClosing() {
+  tone({ freq: 90, to: 46, dur: 0.28, type: 'sawtooth', gain: 0.06 })
+}
+
+export function playMark() {
+  tone({ freq: 520, to: 780, dur: 0.1, type: 'triangle', gain: 0.05 })
+}
+
+export function playBest() {
+  tone({ freq: 660, to: 990, dur: 0.12, type: 'square', gain: 0.05 })
+  tone({ freq: 880, to: 1320, dur: 0.14, type: 'triangle', gain: 0.04, delay: 0.08 })
+}
+
+export function buzz(ms) {
+  try {
+    navigator.vibrate?.(ms)
+  } catch {
+    /* no haptics */
+  }
+}
