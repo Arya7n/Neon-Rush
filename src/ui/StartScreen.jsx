@@ -74,6 +74,7 @@ export function StartScreen() {
           <p><span><kbd>W</kbd><kbd>↑</kbd></span>Jump</p>
           <p><span><kbd>S</kbd><kbd>↓</kbd></span>Slide</p>
           <p><span><kbd>Esc</kbd></span>Pause</p>
+          <p>Energy holds the chase back</p>
         </div>
         <div className="start-row">
           {best > 0 && (
