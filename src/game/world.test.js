@@ -282,6 +282,64 @@ test('menu keeps a paused run and counts down before it resumes', () => {
   assert.equal(worldRef.current.distance, 80)
 })
 
+test('energy that slips past pulls the chase in and a grab pushes it back', () => {
+  const world = createWorld({ rng: mulberry32(7) })
+  isolate(world)
+  world.distance = 80
+  world.chase = 0.2
+  Object.assign(world.collectibles[0], {
+    active: true,
+    kind: 'energy',
+    lane: 1,
+    x: 1.4,
+    z: 1.2,
+    missed: false,
+    spawnAt: world.distance - 1.2,
+  })
+  world.player.x = 0
+  world.player.lane = 1
+  updateWorld(world, 0.016, { laneDelta: 0, jump: false, slide: false })
+  assert.ok(world.chase > 0.25)
+
+  const before = world.chase
+  Object.assign(world.collectibles[1], {
+    active: true,
+    kind: 'energy',
+    lane: 1,
+    x: 0,
+    z: 0,
+    missed: false,
+    spawnAt: world.distance,
+  })
+  updateWorld(world, 0.016, { laneDelta: 0, jump: false, slide: false })
+  assert.ok(world.chase < before)
+  assert.equal(world.orbsCollected, 1)
+})
+
+test('the chase catches a runner who lets it close', () => {
+  const world = createWorld({ rng: mulberry32(8) })
+  isolate(world)
+  world.distance = 120
+  world.chase = 0.96
+  let crashed = false
+  for (let frame = 0; frame < 240; frame += 1) {
+    const result = updateWorld(world, 1 / 60, { laneDelta: 0, jump: false, slide: false })
+    if (result.crashed) crashed = true
+  }
+  assert.equal(crashed, true)
+  assert.equal(world.player.alive, false)
+  assert.equal(world.banner, 'CAUGHT')
+})
+
+test('distance marks land on each quarter kilometer', () => {
+  const world = createWorld({ rng: mulberry32(9) })
+  isolate(world)
+  world.distance = 249
+  const result = updateWorld(world, 0.2, { laneDelta: 0, jump: false, slide: false })
+  assert.equal(result.milestone, true)
+  assert.equal(world.banner, '250M')
+})
+
 test('a hit collapses the runner before the results screen', () => {
   useGameStore.getState().start()
   const world = worldRef.current
