@@ -17,6 +17,7 @@ export function statsFromWorld(world) {
     magnetTime: world.magnetTime || 0,
     boostTime: world.boostTime || 0,
     nearMisses: world.nearMisses || 0,
+    chase: world.chase || 0,
     banner: world.bannerTime > 0 ? world.banner : '',
   }
 }

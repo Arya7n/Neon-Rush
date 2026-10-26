@@ -65,7 +65,9 @@ export const useGameStore = create((set, get) => ({
   magnetTime: 0,
   boostTime: 0,
   nearMisses: 0,
+  chase: 0,
   banner: '',
+  flash: 0,
   pausedRun: false,
   countdown: 0,
   crashTime: 0,
@@ -118,7 +120,9 @@ export const useGameStore = create((set, get) => ({
       magnetTime: 0,
       boostTime: 0,
       nearMisses: 0,
+      chase: 0,
       banner: '',
+      flash: 0,
       pausedRun: false,
       countdown: 0,
       crashTime: 0,
@@ -227,4 +231,6 @@ export const useGameStore = create((set, get) => ({
     if (get().phase !== 'PLAYING') return
     set(stats)
   },
+
+  bumpFlash: () => set({ flash: get().flash + 1 }),
 }))
