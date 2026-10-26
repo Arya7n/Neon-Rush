@@ -2,13 +2,15 @@ import { useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { AdaptiveDpr } from '@react-three/drei'
 import * as THREE from 'three'
-import { playCollect, playCrash, playJump, playNear, playPower, playShield, playSlide, playSmash } from '../game/audio.js'
+import { buzz, playBest, playClosing, playCollect, playCrash, playJump, playMark, playNear, playPower, playShield, playSlide, playSmash } from '../game/audio.js'
 import { useGameStore, worldRef } from '../game/gameStore.js'
 import { consumeInput } from '../game/inputBuffer.js'
 import { statsFromWorld } from '../game/score.js'
 import { getTheme } from '../game/themes.js'
 import { updateMenu, updateWorld } from '../game/world.js'
+import { Chase } from './Chase.jsx'
 import { Scenery } from './Scenery.jsx'
+import { Weather } from './Weather.jsx'
 import { Collectibles } from './Collectibles.jsx'
 import { Effects } from './Effects.jsx'
 import { Obstacles } from './Obstacles.jsx'
@@ -46,21 +48,39 @@ function Simulator() {
     const result = updateWorld(world, step, consumeInput())
     if (beforeY <= 0.001 && world.player.vy > 4) playJump()
     if (!beforeSlide && world.player.sliding) playSlide()
-    if (result.collected) playCollect()
+    if (result.collected) {
+      playCollect()
+      buzz(12)
+    }
     if (result.nearMisses) playNear()
     if (result.powered) playPower()
-    if (result.shielded) playShield()
+    if (result.shielded) {
+      playShield()
+      store.bumpFlash()
+    }
     if (result.smashed) playSmash()
+    if (result.closing) playClosing()
+    if (result.milestone) playMark()
     if (result.crashed) {
       playCrash()
+      buzz(48)
+      if (result.caught) store.bumpFlash()
       store.beginCrash()
       return
     }
 
     hudTimer.current += step
-    if (hudTimer.current >= 0.1 || result.collected || result.powered || result.smashed) {
+    if (hudTimer.current >= 0.1 || result.collected || result.powered || result.smashed || result.closing || result.milestone) {
       hudTimer.current = 0
-      store.pushHud(statsFromWorld(world))
+      const stats = statsFromWorld(world)
+      if (!world.bestNoted && store.best > 0 && stats.score > store.best) {
+        world.bestNoted = true
+        world.banner = 'NEW BEST'
+        world.bannerTime = 1.4
+        stats.banner = 'NEW BEST'
+        playBest()
+      }
+      store.pushHud(stats)
     }
   })
 
@@ -72,7 +92,8 @@ function CameraRig() {
     const world = worldRef.current
     const player = world.player
     const boost = (world.speed - 17) / 20
-    const shake = world.shake
+    const pressure = Math.max(0, (world.chase || 0) - 0.45) * 0.16
+    const shake = world.shake + pressure
     target.set(
       player.x * 0.55 + (Math.random() - 0.5) * shake * 0.22,
       2.45 + player.y * 0.38 - (player.land || 0) * 0.16 + (Math.random() - 0.5) * shake * 0.1,
@@ -131,6 +152,8 @@ export function GameCanvas() {
       <Obstacles worldRef={worldRef} />
       <Collectibles worldRef={worldRef} />
       <Player />
+      <Chase />
+      <Weather />
       <Effects />
     </Canvas>
   )
