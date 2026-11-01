@@ -2,11 +2,11 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { TRACK_LEAD, TRACK_LENGTH } from '../game/constants.js'
+import { writeInstance } from '../game/instance.js'
 import { loopZ } from '../game/math.js'
 import { useGameStore, worldRef } from '../game/gameStore.js'
 import { getTheme } from '../game/themes.js'
 
-const DUMMY = new THREE.Object3D()
 const CHEVRONS = 24
 
 function makeMarkings(theme) {
@@ -145,10 +145,15 @@ export function Road() {
     left.current.instanceColor.needsUpdate = true
     right.current.instanceColor.needsUpdate = true
     if (streaks.current?.material?.color) streaks.current.material.color.set(theme.primary)
+    drawn.current = Number.NaN
   }, [theme])
+
+  const drawn = useRef(Number.NaN)
 
   useFrame(() => {
     const { distance, speed } = worldRef.current
+    if (drawn.current === distance) return
+    drawn.current = distance
     markings.offset.y = -distance * (theme.place === 'shore' ? 0.12 : 0.085)
     grain.offset.y = -distance * 0.04
     if (waves) waves.offset.y = -distance * 0.012
@@ -163,28 +168,19 @@ export function Road() {
     streaks.current.count = 16
     for (let i = 0; i < CHEVRONS; i += 1) {
       const z = loopZ(i * (TRACK_LENGTH / CHEVRONS), distance, TRACK_LENGTH, TRACK_LEAD)
-      DUMMY.rotation.set(0, 0, 0)
-      DUMMY.scale.set(1, 1, 1)
-      DUMMY.position.set(-1.28, 0.045, z)
-      DUMMY.updateMatrix()
-      left.current.setMatrixAt(i, DUMMY.matrix)
-      DUMMY.position.set(1.28, 0.045, z)
-      DUMMY.updateMatrix()
-      right.current.setMatrixAt(i, DUMMY.matrix)
+      writeInstance(left.current, i, -1.28, 0.045, z, 1, 1, 1)
+      writeInstance(right.current, i, 1.28, 0.045, z, 1, 1, 1)
     }
     left.current.instanceMatrix.needsUpdate = true
     right.current.instanceMatrix.needsUpdate = true
 
     const show = Math.min(1, Math.max(0, (speed - 18) / 12))
+    const stretch = 1.6 + show * 2.4
     for (let i = 0; i < 16; i += 1) {
       const side = i < 8 ? -1 : 1
       const lane = (i % 8) / 8
       const z = loopZ(i * 14, distance * 1.35, TRACK_LENGTH, TRACK_LEAD)
-      DUMMY.position.set(side * (5.3 + lane * 2.2), 0.7 + (i % 5) * 0.35, z)
-      DUMMY.scale.set(0.03, 0.03, 1.6 + show * 2.4)
-      DUMMY.rotation.set(0, 0, 0)
-      DUMMY.updateMatrix()
-      streaks.current.setMatrixAt(i, DUMMY.matrix)
+      writeInstance(streaks.current, i, side * (5.3 + lane * 2.2), 0.7 + (i % 5) * 0.35, z, 0.03, 0.03, stretch)
     }
     streaks.current.instanceMatrix.needsUpdate = true
   })
