@@ -29,12 +29,12 @@ export function Scenery({ worldRef }) {
   return (
     <group>
       <mesh frustumCulled={false}>
-        <sphereGeometry args={[190, 24, 16]} />
+        <sphereGeometry args={[190, 12, 8]} />
         <meshBasicMaterial map={sky} side={THREE.BackSide} fog={false} depthWrite={false} />
       </mesh>
       {theme.place !== 'city' && (
         <mesh position={theme.sunPos}>
-          <sphereGeometry args={[5.5, 16, 12]} />
+          <sphereGeometry args={[5.5, 8, 6]} />
           <meshBasicMaterial color={theme.sun} fog={false} />
         </mesh>
       )}
