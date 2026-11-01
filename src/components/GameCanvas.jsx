@@ -94,9 +94,10 @@ function CameraRig() {
     const boost = (world.speed - 17) / 20
     const pressure = Math.max(0, (world.chase || 0) - 0.45) * 0.16
     const shake = world.shake + pressure
+    const jolt = shake > 0.001 ? (Math.random() - 0.5) * shake : 0
     target.set(
-      player.x * 0.55 + (Math.random() - 0.5) * shake * 0.22,
-      2.45 + player.y * 0.38 - (player.land || 0) * 0.16 + (Math.random() - 0.5) * shake * 0.1,
+      player.x * 0.55 + jolt * 0.22,
+      2.45 + player.y * 0.38 - (player.land || 0) * 0.16 + jolt * 0.1,
       5.15 - boost * 0.3,
     )
     const camera = state.camera
@@ -105,8 +106,11 @@ function CameraRig() {
     camera.lookAt(look)
     camera.rotateZ(player.x * -0.015)
     const fov = 50 + boost * 4 + Math.max(0, player.vy) * 0.42 + Math.max(0, -player.vy) * 0.12
-    camera.fov += (fov - camera.fov) * (1 - Math.exp(-2.5 * dt))
-    camera.updateProjectionMatrix()
+    const nextFov = camera.fov + (fov - camera.fov) * (1 - Math.exp(-2.5 * dt))
+    if (Math.abs(nextFov - camera.fov) > 0.02) {
+      camera.fov = nextFov
+      camera.updateProjectionMatrix()
+    }
     world.shake = Math.max(0, world.shake - dt * 1.6)
   })
   return null
