@@ -81,6 +81,7 @@ export function Player() {
   }, [mats, themeId])
 
   useFrame((_, dt) => {
+    if (useGameStore.getState().phase === 'PAUSED') return
     const world = worldRef.current
     const player = world.player
     mats.accent.emissiveIntensity = 0.35 + Math.min(world.combo || 0, 8) * 0.16
