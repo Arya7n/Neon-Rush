@@ -60,20 +60,45 @@ export function setMuted(next) {
   master.gain.value = next ? 0 : 0.22
 }
 
-function tone({ freq = 440, to = freq, dur = 0.12, type = 'square', gain = 0.08, delay = 0 }) {
-  const audio = context()
-  if (!audio || !master || master.gain.value === 0) return
+const VOICE_LIMIT = 8
+const voices = []
+
+function makeVoice(audio) {
   const osc = audio.createOscillator()
   const amp = audio.createGain()
-  osc.type = type
-  osc.frequency.setValueAtTime(freq, audio.currentTime + delay)
-  osc.frequency.exponentialRampToValueAtTime(Math.max(40, to), audio.currentTime + delay + dur)
-  amp.gain.setValueAtTime(gain, audio.currentTime + delay)
-  amp.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + delay + dur)
+  amp.gain.value = 0
   osc.connect(amp)
   amp.connect(master)
-  osc.start(audio.currentTime + delay)
-  osc.stop(audio.currentTime + delay + dur + 0.02)
+  osc.start()
+  return { osc, amp, freeAt: 0 }
+}
+
+function tone({ freq = 440, to = freq, dur = 0.12, type = 'square', gain = 0.08, delay = 0 }) {
+  if (muted) return
+  const audio = context()
+  if (!audio || !master) return
+  const now = audio.currentTime + delay
+  let slot = null
+  for (let i = 0; i < voices.length; i += 1) {
+    if (voices[i].freeAt <= now) {
+      slot = voices[i]
+      break
+    }
+  }
+  if (!slot) {
+    if (voices.length >= VOICE_LIMIT) return
+    slot = makeVoice(audio)
+    voices.push(slot)
+  }
+  const end = now + dur
+  slot.osc.type = type
+  slot.osc.frequency.cancelScheduledValues(now)
+  slot.osc.frequency.setValueAtTime(freq, now)
+  slot.osc.frequency.exponentialRampToValueAtTime(Math.max(40, to), end)
+  slot.amp.gain.cancelScheduledValues(now)
+  slot.amp.gain.setValueAtTime(gain, now)
+  slot.amp.gain.exponentialRampToValueAtTime(0.0001, end)
+  slot.freeAt = end + 0.03
 }
 
 export function playJump() {
