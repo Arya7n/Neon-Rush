@@ -38,8 +38,8 @@ function overlapsXZ(player, lane, hitX, hitZ, z) {
 export function overlapsPlayer(player, obstacle) {
   const long = obstacle.type === 'train' || (obstacle.type === 'vine' && obstacle.length)
   const halfZ = long ? (obstacle.length || TRAIN_LENGTH) / 2 : HIT_Z
-  if (Math.abs(player.x - obstacleX(obstacle)) > HIT_X) return false
   if (Math.abs(obstacle.z) > halfZ) return false
+  if (Math.abs(player.x - obstacleX(obstacle)) > HIT_X) return false
   if ((obstacle.type === 'block' || obstacle.type === 'train' || obstacle.type === 'wave') && player.y > RAMP_CLEAR_Y) return false
   if (obstacle.type === 'ramp') return player.y < 0.45
   const height = player.sliding ? SLIDE_HEIGHT : STAND_HEIGHT
