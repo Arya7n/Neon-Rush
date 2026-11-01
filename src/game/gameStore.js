@@ -229,6 +229,22 @@ export const useGameStore = create((set, get) => ({
 
   pushHud: (stats) => {
     if (get().phase !== 'PLAYING') return
+    const current = get()
+    if (
+      current.score === stats.score
+      && current.distance === stats.distance
+      && current.orbs === stats.orbs
+      && current.speed === stats.speed
+      && current.combo === stats.combo
+      && current.maxCombo === stats.maxCombo
+      && current.shield === stats.shield
+      && current.smash === stats.smash
+      && current.magnetTime === stats.magnetTime
+      && current.boostTime === stats.boostTime
+      && current.nearMisses === stats.nearMisses
+      && current.chase === stats.chase
+      && current.banner === stats.banner
+    ) return
     set(stats)
   },
 
