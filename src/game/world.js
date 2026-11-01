@@ -145,9 +145,51 @@ function flash(world, text) {
   world.bannerTime = 1.15
 }
 
+const stepResult = {
+  collected: 0,
+  crashed: false,
+  shielded: false,
+  smashed: false,
+  nearMisses: 0,
+  powered: 0,
+  slipped: 0,
+  closing: false,
+  milestone: false,
+  caught: false,
+}
+
+const frameResult = {
+  collected: 0,
+  crashed: false,
+  shielded: false,
+  smashed: false,
+  nearMisses: 0,
+  powered: 0,
+  slipped: 0,
+  closing: false,
+  milestone: false,
+  caught: false,
+}
+
+const blankInput = { laneDelta: 0, jump: false, slide: false }
+
+function publishStep(collected, crashed, shielded, smashed, nearMisses, powered, slipped, closing, milestone, caught) {
+  stepResult.collected = collected
+  stepResult.crashed = crashed
+  stepResult.shielded = shielded
+  stepResult.smashed = smashed
+  stepResult.nearMisses = nearMisses
+  stepResult.powered = powered
+  stepResult.slipped = slipped
+  stepResult.closing = closing
+  stepResult.milestone = milestone
+  stepResult.caught = caught
+  return stepResult
+}
+
 function step(world, dt, input) {
   const player = world.player
-  if (!player.alive) return { collected: 0, crashed: false, shielded: false, smashed: false, nearMisses: 0, powered: 0, slipped: 0, closing: false, milestone: false, caught: false }
+  if (!player.alive) return publishStep(0, false, false, false, 0, 0, 0, false, false, false)
 
   if (input.laneDelta) {
     player.lane = clamp(player.lane + input.laneDelta, 0, 2)
@@ -298,7 +340,7 @@ function step(world, dt, input) {
     player.alive = false
     world.shake = 1
     flash(world, 'CAUGHT')
-    return { collected, crashed: true, shielded: false, smashed, nearMisses, powered, slipped, closing, milestone, caught: true }
+    return publishStep(collected, true, false, smashed, nearMisses, powered, slipped, closing, milestone, true)
   }
 
   for (const obstacle of world.obstacles) {
@@ -376,42 +418,42 @@ function step(world, dt, input) {
     }
     player.alive = false
     world.shake = 1
-    return { collected, crashed: true, shielded: false, smashed, nearMisses, powered, slipped, closing, milestone, caught: false }
+    return publishStep(collected, true, false, smashed, nearMisses, powered, slipped, closing, milestone, false)
   }
 
-  return { collected, crashed: false, shielded, smashed, nearMisses, powered, slipped, closing, milestone, caught: false }
+  return publishStep(collected, false, shielded, smashed, nearMisses, powered, slipped, closing, milestone, false)
 }
 
 export function updateWorld(world, dt, input) {
   const steps = Math.max(1, Math.ceil(dt / 0.016))
   const slice = dt / steps
-  let collected = 0
-  let nearMisses = 0
-  let powered = 0
-  let crashed = false
-  let shielded = false
-  let smashed = false
-  let slipped = 0
-  let closing = false
-  let milestone = false
-  let caught = false
+  frameResult.collected = 0
+  frameResult.nearMisses = 0
+  frameResult.powered = 0
+  frameResult.slipped = 0
+  frameResult.crashed = false
+  frameResult.shielded = false
+  frameResult.smashed = false
+  frameResult.closing = false
+  frameResult.milestone = false
+  frameResult.caught = false
   for (let i = 0; i < steps; i += 1) {
-    const result = step(world, slice, i === 0 ? input : { laneDelta: 0, jump: false, slide: false })
-    collected += result.collected
-    nearMisses += result.nearMisses
-    powered += result.powered
-    slipped += result.slipped || 0
-    if (result.shielded) shielded = true
-    if (result.smashed) smashed = true
-    if (result.closing) closing = true
-    if (result.milestone) milestone = true
-    if (result.caught) caught = true
+    const result = step(world, slice, i === 0 ? input : blankInput)
+    frameResult.collected += result.collected
+    frameResult.nearMisses += result.nearMisses
+    frameResult.powered += result.powered
+    frameResult.slipped += result.slipped || 0
+    if (result.shielded) frameResult.shielded = true
+    if (result.smashed) frameResult.smashed = true
+    if (result.closing) frameResult.closing = true
+    if (result.milestone) frameResult.milestone = true
+    if (result.caught) frameResult.caught = true
     if (result.crashed) {
-      crashed = true
+      frameResult.crashed = true
       break
     }
   }
-  return { collected, crashed, shielded, smashed, nearMisses, powered, slipped, closing, milestone, caught }
+  return frameResult
 }
 
 export function updateMenu(world, dt) {
