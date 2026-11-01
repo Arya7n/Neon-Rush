@@ -4,22 +4,37 @@ export function computeScore(distance, orbs, bonus = 0) {
   return Math.floor(distance) * 2 + orbs * 50 + bonus
 }
 
+const stats = {
+  score: 0,
+  distance: 0,
+  orbs: 0,
+  speed: 0,
+  combo: 0,
+  maxCombo: 0,
+  shield: 0,
+  smash: 0,
+  magnetTime: 0,
+  boostTime: 0,
+  nearMisses: 0,
+  chase: 0,
+  banner: '',
+}
+
 export function statsFromWorld(world) {
-  return {
-    score: computeScore(world.distance, world.orbsCollected, world.bonus || 0),
-    distance: world.distance,
-    orbs: world.orbsCollected,
-    speed: world.speed,
-    combo: world.combo || 0,
-    maxCombo: world.maxCombo || 0,
-    shield: world.shield || 0,
-    smash: world.smash || 0,
-    magnetTime: world.magnetTime || 0,
-    boostTime: world.boostTime || 0,
-    nearMisses: world.nearMisses || 0,
-    chase: world.chase || 0,
-    banner: world.bannerTime > 0 ? world.banner : '',
-  }
+  stats.score = computeScore(world.distance, world.orbsCollected, world.bonus || 0)
+  stats.distance = world.distance
+  stats.orbs = world.orbsCollected
+  stats.speed = world.speed
+  stats.combo = world.combo || 0
+  stats.maxCombo = world.maxCombo || 0
+  stats.shield = world.shield || 0
+  stats.smash = world.smash || 0
+  stats.magnetTime = world.magnetTime || 0
+  stats.boostTime = world.boostTime || 0
+  stats.nearMisses = world.nearMisses || 0
+  stats.chase = world.chase || 0
+  stats.banner = world.bannerTime > 0 ? world.banner : ''
+  return stats
 }
 
 function storeOf(storage) {
