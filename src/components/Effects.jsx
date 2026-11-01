@@ -6,7 +6,7 @@ export function Effects() {
   if (quality !== 'high') return null
   return (
     <EffectComposer disableNormalPass multisampling={0}>
-      <Bloom luminanceThreshold={1.15} mipmapBlur intensity={0.28} radius={0.35} />
+      <Bloom luminanceThreshold={1.15} mipmapBlur intensity={0.28} radius={0.35} levels={4} resolutionScale={0.5} />
       <Vignette eskil={false} offset={0.2} darkness={0.45} />
     </EffectComposer>
   )
