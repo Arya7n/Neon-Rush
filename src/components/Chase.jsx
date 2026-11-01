@@ -23,10 +23,10 @@ export function Chase() {
   useFrame((_, dt) => {
     const world = worldRef.current
     if (!root.current || !world) return
-    const phase = useGameStore.getState().phase
-    const pausedRun = useGameStore.getState().pausedRun
-    const hide = phase === 'CRASH' || phase === 'GAME_OVER' || (phase === 'MENU' && !pausedRun)
+    const state = useGameStore.getState()
+    const hide = state.phase === 'CRASH' || state.phase === 'GAME_OVER' || (state.phase === 'MENU' && !state.pausedRun)
     const want = hide ? 0 : world.chase || 0
+    if (Math.abs(want - shown.current) < 0.0008 && root.current.visible === want > 0.03) return
     const step = dt > 0 ? Math.min(dt, 0.05) : 0.016
     shown.current += (want - shown.current) * (1 - Math.exp(-3.4 * step))
     const amount = shown.current
