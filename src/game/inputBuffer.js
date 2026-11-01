@@ -1,4 +1,5 @@
 const buffer = { lane: 0, jump: false, slide: false }
+const snapshot = { laneDelta: 0, jump: false, slide: false }
 
 export function queueLane(direction) {
   buffer.lane = Math.max(-1, Math.min(1, buffer.lane + direction))
@@ -13,9 +14,11 @@ export function queueSlide() {
 }
 
 export function consumeInput() {
-  const input = { laneDelta: buffer.lane, jump: buffer.jump, slide: buffer.slide }
+  snapshot.laneDelta = buffer.lane
+  snapshot.jump = buffer.jump
+  snapshot.slide = buffer.slide
   clearInput()
-  return input
+  return snapshot
 }
 
 export function clearInput() {
