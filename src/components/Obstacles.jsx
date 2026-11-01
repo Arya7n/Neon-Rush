@@ -4,24 +4,13 @@ import * as THREE from 'three'
 import { useGameStore } from '../game/gameStore.js'
 import { LANE_X, OBSTACLE_POOL, TRAIN_LENGTH } from '../game/constants.js'
 import { duneRise, waveCenter } from '../game/hazards.js'
+import { showInstances, writeInstance } from '../game/instance.js'
 import { getTheme } from '../game/themes.js'
 
-const DUMMY = new THREE.Object3D()
 const MAX = 20
 
 function place(mesh, index, x, y, z, sx, sy, sz, rotX = 0, rotZ = 0) {
-  if (!mesh) return
-  DUMMY.position.set(x, y, z)
-  DUMMY.rotation.set(rotX, 0, rotZ)
-  DUMMY.scale.set(sx, sy, sz)
-  DUMMY.updateMatrix()
-  mesh.setMatrixAt(index, DUMMY.matrix)
-}
-
-function commit(mesh, count) {
-  if (!mesh) return
-  mesh.count = count
-  mesh.instanceMatrix.needsUpdate = true
+  writeInstance(mesh, index, x, y, z, sx, sy, sz, rotX, 0, rotZ)
 }
 
 export function Obstacles({ worldRef }) {
@@ -78,8 +67,8 @@ export function Obstacles({ worldRef }) {
 
   useFrame(() => {
     if (!low.current || !warnBlock.current || !legs.current || !wheels.current || !windows.current || !train.current || !ramp.current || !vine.current || !dune.current || !wave.current) return
-    const phase = useGameStore.getState().phase
-    const visible = phase !== 'MENU' || useGameStore.getState().pausedRun
+    const state = useGameStore.getState()
+    const visible = state.phase !== 'MENU' || state.pausedRun
     const list = worldRef.current.obstacles
     let lowCount = 0
     let highCount = 0
@@ -158,28 +147,28 @@ export function Obstacles({ worldRef }) {
         }
       }
     }
-    commit(low.current, lowCount)
-    commit(bar.current, highCount)
-    commit(postL.current, highCount)
-    commit(postR.current, highCount)
-    commit(block.current, blockCount)
-    commit(edge.current, blockCount)
-    commit(warnLow.current, lowCount)
-    commit(warnHigh.current, highCount + rampCount + vineCount)
-    commit(warnBlock.current, blockCount + trainCount + waveCount)
-    commit(legs.current, lowCount * 2)
-    commit(wheels.current, blockCount * 4)
-    commit(windows.current, blockCount)
-    commit(train.current, trainCount)
-    commit(trainNose.current, trainCount)
-    commit(trainGlass.current, trainCount * 4)
-    commit(ramp.current, rampCount)
-    commit(vine.current, vineCount)
-    commit(strand.current, strandCount)
-    commit(dune.current, duneCount)
-    commit(duneBase.current, duneCount)
-    commit(wave.current, waveCount)
-    commit(foam.current, waveCount)
+    showInstances(low.current, lowCount)
+    showInstances(bar.current, highCount)
+    showInstances(postL.current, highCount)
+    showInstances(postR.current, highCount)
+    showInstances(block.current, blockCount)
+    showInstances(edge.current, blockCount)
+    showInstances(warnLow.current, lowCount)
+    showInstances(warnHigh.current, highCount + rampCount + vineCount)
+    showInstances(warnBlock.current, blockCount + trainCount + waveCount)
+    showInstances(legs.current, lowCount * 2)
+    showInstances(wheels.current, blockCount * 4)
+    showInstances(windows.current, blockCount)
+    showInstances(train.current, trainCount)
+    showInstances(trainNose.current, trainCount)
+    showInstances(trainGlass.current, trainCount * 4)
+    showInstances(ramp.current, rampCount)
+    showInstances(vine.current, vineCount)
+    showInstances(strand.current, strandCount)
+    showInstances(dune.current, duneCount)
+    showInstances(duneBase.current, duneCount)
+    showInstances(wave.current, waveCount)
+    showInstances(foam.current, waveCount)
   })
 
   return (
