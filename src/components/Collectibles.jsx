@@ -2,26 +2,18 @@ import { useLayoutEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGameStore } from '../game/gameStore.js'
 import { LANE_X, ORB_POOL } from '../game/constants.js'
+import { showInstances, writeInstance } from '../game/instance.js'
 import { getTheme } from '../game/themes.js'
 import * as THREE from 'three'
 
-const DUMMY = new THREE.Object3D()
 const MAX = 24
 
 function place(mesh, index, x, y, z, scale, spin) {
-  DUMMY.position.set(x, y, z)
-  DUMMY.rotation.set(spin * 0.6, spin, 0)
-  DUMMY.scale.setScalar(scale)
-  DUMMY.updateMatrix()
-  mesh.setMatrixAt(index, DUMMY.matrix)
+  writeInstance(mesh, index, x, y, z, scale, scale, scale, spin * 0.6, spin, 0)
 }
 
 function placeRing(mesh, index, x, z) {
-  DUMMY.position.set(x, 0.045, z)
-  DUMMY.rotation.set(-Math.PI / 2, 0, 0)
-  DUMMY.scale.setScalar(1)
-  DUMMY.updateMatrix()
-  mesh.setMatrixAt(index, DUMMY.matrix)
+  writeInstance(mesh, index, x, 0.045, z, 1, 1, 1, -Math.PI / 2, 0, 0)
 }
 
 export function Collectibles({ worldRef }) {
@@ -43,8 +35,8 @@ export function Collectibles({ worldRef }) {
 
   useFrame(() => {
     if (!core.current || !shield.current || !magnet.current || !boost.current || !smash.current) return
-    const phase = useGameStore.getState().phase
-    const visible = phase !== 'MENU' || useGameStore.getState().pausedRun
+    const state = useGameStore.getState()
+    const visible = state.phase !== 'MENU' || state.pausedRun
     const world = worldRef.current
     const list = world.collectibles
     let energy = 0
@@ -80,17 +72,14 @@ export function Collectibles({ worldRef }) {
         }
       }
     }
-    core.current.count = energy
-    glow.current.count = energy
-    ring.current.count = energy
-    shield.current.count = shields
-    shieldRing.current.count = shields
-    magnet.current.count = magnets
-    boost.current.count = boosts
-    smash.current.count = smashes
-    for (const mesh of [core, glow, ring, shield, shieldRing, magnet, boost, smash]) {
-      mesh.current.instanceMatrix.needsUpdate = true
-    }
+    showInstances(core.current, energy)
+    showInstances(glow.current, energy)
+    showInstances(ring.current, energy)
+    showInstances(shield.current, shields)
+    showInstances(shieldRing.current, shields)
+    showInstances(magnet.current, magnets)
+    showInstances(boost.current, boosts)
+    showInstances(smash.current, smashes)
   })
 
   return (
