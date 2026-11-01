@@ -2,9 +2,8 @@ import { useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { SEGMENT_COUNT, SEGMENT_LENGTH, TRACK_LEAD, TRACK_LENGTH } from '../game/constants.js'
+import { writeInstance } from '../game/instance.js'
 import { loopZ, mulberry32 } from '../game/math.js'
-
-const DUMMY = new THREE.Object3D()
 
 function scatter(seed, perSide, near, span) {
   const rng = mulberry32(seed)
@@ -35,12 +34,7 @@ function paint(mesh, items, colors) {
 }
 
 function stamp(mesh, index, x, y, z, sx, sy, sz, rotY = 0, rotZ = 0) {
-  if (!mesh) return
-  DUMMY.position.set(x, y, z)
-  DUMMY.rotation.set(0, rotY, rotZ)
-  DUMMY.scale.set(sx, sy, sz)
-  DUMMY.updateMatrix()
-  mesh.setMatrixAt(index, DUMMY.matrix)
+  writeInstance(mesh, index, x, y, z, sx, sy, sz, 0, rotY, rotZ)
 }
 
 export function Jungle({ worldRef }) {
@@ -66,9 +60,13 @@ export function Jungle({ worldRef }) {
     paint(under.current, bushes, bushColors)
   }, [bushes, bushColors, leaves, trees])
 
+  const drawn = useRef(Number.NaN)
+
   useFrame(() => {
     if (!trunks.current || !canopy.current || !under.current) return
     const { distance } = worldRef.current
+    if (drawn.current === distance) return
+    drawn.current = distance
     trees.forEach((tree, index) => {
       const z = loopZ(tree.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
       const height = 4.2 + tree.h * 4.5
@@ -132,9 +130,13 @@ export function Dunes({ worldRef }) {
     paint(rock.current, buttes, rockColors)
   }, [buttes, mounds, rockColors, sandColors])
 
+  const drawn = useRef(Number.NaN)
+
   useFrame(() => {
     if (!sand.current || !rock.current || !cactus.current || !arms.current) return
     const { distance } = worldRef.current
+    if (drawn.current === distance) return
+    drawn.current = distance
     mounds.forEach((mound, index) => {
       const z = loopZ(mound.anchor, distance * 0.85, TRACK_LENGTH, TRACK_LEAD)
       const sx = 4 + mound.h * 5
@@ -199,9 +201,13 @@ export function Shore({ worldRef }) {
     paint(tops.current, shades, cloth)
   }, [cloth, shades])
 
+  const drawn = useRef(Number.NaN)
+
   useFrame(() => {
     if (!trunks.current || !crowns.current || !poles.current || !tops.current) return
     const { distance, elapsed } = worldRef.current
+    if (drawn.current === distance) return
+    drawn.current = distance
     palms.forEach((palm, index) => {
       const z = loopZ(palm.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
       const height = 3.4 + palm.h * 2.4
