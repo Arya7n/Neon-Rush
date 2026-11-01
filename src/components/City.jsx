@@ -3,10 +3,9 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { SEGMENT_COUNT, SEGMENT_LENGTH, TRACK_LEAD, TRACK_LENGTH } from '../game/constants.js'
 import { useGameStore } from '../game/gameStore.js'
+import { writeInstance } from '../game/instance.js'
 import { loopZ, mulberry32 } from '../game/math.js'
 import { getTheme } from '../game/themes.js'
-
-const DUMMY = new THREE.Object3D()
 const TINTS = ['#243044', '#2a2238', '#1c3040', '#332033', '#24343c']
 const SIGNS = ['NEON', 'RUSH', 'GRID', 'NOVA', 'KILO', 'VOID', 'ARC', '2077']
 
@@ -133,6 +132,7 @@ export function City({ worldRef }) {
   const poles = useRef()
   const bulbs = useRef()
   const signRefs = useRef([])
+  const tinted = useRef('')
 
   useLayoutEffect(() => {
     ;[bodies, glass, far, poles, bulbs].forEach((ref) => {
@@ -146,60 +146,58 @@ export function City({ worldRef }) {
     const { distance, elapsed } = worldRef.current
     buildings.forEach((building, index) => {
       const z = loopZ(building.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
-      DUMMY.position.set(building.x, building.height / 2, z)
-      DUMMY.rotation.set(0, 0, 0)
-      DUMMY.scale.set(building.width, building.height, building.depth)
-      DUMMY.updateMatrix()
-      bodies.current.setMatrixAt(index, DUMMY.matrix)
-
+      writeInstance(bodies.current, index, building.x, building.height / 2, z, building.width, building.height, building.depth)
       const facing = -Math.sign(building.x)
-      DUMMY.position.set(building.x + facing * (building.depth / 2 + 0.04), building.height * 0.55, z)
-      DUMMY.rotation.set(0, building.x > 0 ? -Math.PI / 2 : Math.PI / 2, 0)
-      DUMMY.scale.set(building.width * 0.78, building.height * 0.7, 1)
-      DUMMY.updateMatrix()
-      glass.current.setMatrixAt(index, DUMMY.matrix)
+      const yaw = building.x > 0 ? -Math.PI / 2 : Math.PI / 2
+      writeInstance(
+        glass.current,
+        index,
+        building.x + facing * (building.depth / 2 + 0.04),
+        building.height * 0.55,
+        z,
+        building.width * 0.78,
+        building.height * 0.7,
+        1,
+        0,
+        yaw,
+      )
     })
     bodies.current.instanceMatrix.needsUpdate = true
     glass.current.instanceMatrix.needsUpdate = true
 
     skyline.forEach((tower, index) => {
       const z = loopZ(tower.anchor, distance * 0.35, TRACK_LENGTH, TRACK_LEAD + 10)
-      DUMMY.position.set(tower.x, tower.height / 2, z)
-      DUMMY.rotation.set(0, 0, 0)
-      DUMMY.scale.set(tower.width, tower.height, tower.depth)
-      DUMMY.updateMatrix()
-      far.current.setMatrixAt(index, DUMMY.matrix)
+      writeInstance(far.current, index, tower.x, tower.height / 2, z, tower.width, tower.height, tower.depth)
     })
     far.current.instanceMatrix.needsUpdate = true
 
     lamps.forEach((lamp, index) => {
       const z = loopZ(lamp.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
-      DUMMY.position.set(lamp.x, 1.5, z)
-      DUMMY.rotation.set(0, 0, 0)
-      DUMMY.scale.set(0.08, 3, 0.08)
-      DUMMY.updateMatrix()
-      poles.current.setMatrixAt(index, DUMMY.matrix)
-      DUMMY.position.set(lamp.x, 3.05, z)
-      DUMMY.scale.set(0.22, 0.22, 0.22)
-      DUMMY.updateMatrix()
-      bulbs.current.setMatrixAt(index, DUMMY.matrix)
+      writeInstance(poles.current, index, lamp.x, 1.5, z, 0.08, 3, 0.08)
+      writeInstance(bulbs.current, index, lamp.x, 3.05, z, 0.22, 0.22, 0.22)
     })
     poles.current.instanceMatrix.needsUpdate = true
     bulbs.current.instanceMatrix.needsUpdate = true
 
     const palette = getTheme(useGameStore.getState().theme)
-    if (bulbs.current?.material) bulbs.current.material.color.set(palette.primary)
+    if (tinted.current !== palette.id) {
+      tinted.current = palette.id
+      if (bulbs.current?.material) bulbs.current.material.color.set(palette.primary)
+      signs.forEach((sign, index) => {
+        const mesh = signRefs.current[index]
+        if (mesh) mesh.material.color.set(index % 2 === 0 ? palette.primary : palette.secondary)
+      })
+    }
     signs.forEach((sign, index) => {
       const mesh = signRefs.current[index]
       if (!mesh) return
-      mesh.material.color.set(index % 2 === 0 ? palette.primary : palette.secondary)
       const z = loopZ(sign.anchor, distance, TRACK_LENGTH, TRACK_LEAD)
       const facing = -Math.sign(sign.x)
       const x = sign.roadside ? sign.x : sign.x + facing * (sign.depth / 2 + 0.12)
       mesh.position.set(x, sign.signY, z)
       mesh.rotation.y = sign.x > 0 ? -Math.PI / 2 : Math.PI / 2
       const blink = Math.sin(elapsed * 6 + index * 1.7) > 0.94 ? 0.25 : 1
-      mesh.material.opacity = blink
+      if (mesh.material.opacity !== blink) mesh.material.opacity = blink
     })
   })
 
