@@ -3,6 +3,8 @@ import { playStart, resumeAudio } from './audio.js'
 import { useGameStore } from './gameStore.js'
 import { clearInput, queueJump, queueLane, queueSlide } from './inputBuffer.js'
 
+const BLOCKED_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'])
+
 export function useGameHotkeys() {
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -40,9 +42,7 @@ export function useGameHotkeys() {
       }
 
       if (phase !== 'PLAYING') return
-      if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-        event.preventDefault()
-      }
+      if (BLOCKED_KEYS.has(event.key)) event.preventDefault()
 
       switch (event.key.toLowerCase()) {
         case 'arrowleft':
